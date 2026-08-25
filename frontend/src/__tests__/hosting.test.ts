@@ -10,6 +10,8 @@ function who(
     id,
     name: id,
     instrumentId: "tabla",
+    roleId: null,
+    rolePart: 0,
     isHost: false,
     joinedAt,
     connected: true,

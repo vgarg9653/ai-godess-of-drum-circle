@@ -40,6 +40,18 @@ interface Node {
   isYou: boolean;
 }
 
+/** Where a given step sits on the ring. Shared by the playhead and the cues. */
+function pointAt(
+  step: number,
+  steps: number,
+  cx: number,
+  cy: number,
+  radius: number,
+): { x: number; y: number } {
+  const angle = -Math.PI / 2 + (step / steps) * Math.PI * 2;
+  return { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
+}
+
 interface Ripple {
   x: number;
   y: number;
@@ -63,7 +75,19 @@ export interface CircleCanvasProps {
    * down, closed once the groove is going. It is the quietest way to answer
    * "has it started?" without putting words on the play surface.
    */
-  loopState: "open" | "locked";
+  loopState: "cued" | "open" | "locked";
+  /**
+   * This person's cued hits, while they are learning a song part.
+   *
+   * Drawn as pips on the ring the playhead sweeps, so the player watches their
+   * next hit approach and sees it flash as it arrives. That is the entire
+   * vocabulary: *now*. No indication of whether the last one was early, late or
+   * missed — the brief forbids it, and a room of people does not need marking.
+   *
+   * Released cues are simply not drawn. They fade out of existence rather than
+   * being ticked off.
+   */
+  cues: Array<{ step: number; released: boolean }>;
   onStroke: (stroke: Stroke) => void;
   onInspect: (participant: Participant, x: number, y: number) => void;
 }
@@ -216,6 +240,24 @@ export function CircleCanvas(props: CircleCanvasProps) {
       ctx!.arc(cx + outer * Math.cos(angle), cy + outer * Math.sin(angle), 4.5, 0, Math.PI * 2);
       ctx!.fill();
       ctx!.restore();
+
+      // --- cued hits, on the ring the playhead is sweeping ---
+      for (const cue of propsRef.current.cues) {
+        if (cue.released) continue;
+        const p = pointAt(cue.step, steps, cx, cy, outer);
+        const now = cue.step === step;
+        ctx!.save();
+        ctx!.globalAlpha = (now ? 1 : 0.5) * dim;
+        ctx!.fillStyle = now ? "#f6ecd9" : "#ffc95c";
+        if (now) {
+          ctx!.shadowColor = "#ffc95c";
+          ctx!.shadowBlur = 18;
+        }
+        ctx!.beginPath();
+        ctx!.arc(p.x, p.y, now ? 9 : 4.5, 0, Math.PI * 2);
+        ctx!.fill();
+        ctx!.restore();
+      }
 
       // --- ripples, oldest first so new ones sit on top ---
       const alive: Ripple[] = [];

@@ -27,6 +27,7 @@ export function PlayScreen() {
   const phrase = useSessionStore((s) => s.phrase);
   const trance = useSessionStore((s) => s.trance);
   const loopState = useSessionStore((s) => s.loopState);
+  const cues = useSessionStore((s) => s.cues);
   const strike = useSessionStore((s) => s.strike);
   const clearAll = useSessionStore((s) => s.clearAll);
   const leave = useSessionStore((s) => s.leave);
@@ -76,6 +77,7 @@ export function PlayScreen() {
         transport={room.transport}
         trance={trance}
         loopState={loopState}
+        cues={cues}
         onStroke={strike}
         onInspect={(participant, x, y) => {
           wake();
@@ -106,13 +108,23 @@ export function PlayScreen() {
           {/* The one line that answers "has my groove started?" */}
           <span
             className="text-[10px] tracking-[0.18em] transition-colors"
-            style={{ color: loopState === "locked" ? "var(--color-top)" : "rgba(246,236,217,0.35)" }}
+            style={{
+              color:
+                loopState === "locked"
+                  ? "var(--color-top)"
+                  : loopState === "cued"
+                    ? "var(--color-gold)"
+                    : "rgba(246,236,217,0.35)",
+            }}
           >
-            {loopState === "locked"
-              ? "grooving"
-              : tapsLeft > 0
-                ? `laying down · ${tapsLeft} more tap${tapsLeft === 1 ? "" : "s"}`
-                : "laying down · locks on the bar"}
+            {/* Never a count of what has been found. That would be a score. */}
+            {loopState === "cued"
+              ? "your part · tap along"
+              : loopState === "locked"
+                ? "grooving"
+                : tapsLeft > 0
+                  ? `laying down · ${tapsLeft} more tap${tapsLeft === 1 ? "" : "s"}`
+                  : "laying down · locks on the bar"}
           </span>
         </span>
       </div>
@@ -147,16 +159,18 @@ export function PlayScreen() {
           </>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={() => {
-                wake();
-                clearAll();
-              }}
-              className="text-[11px] uppercase tracking-[0.2em] text-cream/45 underline underline-offset-4"
-            >
-              clear mine
-            </button>
+            {loopState !== "cued" && (
+              <button
+                type="button"
+                onClick={() => {
+                  wake();
+                  clearAll();
+                }}
+                className="text-[11px] uppercase tracking-[0.2em] text-cream/45 underline underline-offset-4"
+              >
+                clear mine
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {

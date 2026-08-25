@@ -10,7 +10,7 @@ import type { HostChangeReason } from "./hosting.js";
 import type { GroupSize } from "./instruments.js";
 import type { MoodId } from "./music.js";
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /* ------------------------------------------------------------------ *
  * Entities
@@ -61,6 +61,18 @@ export interface Participant {
   id: string;
   name: string;
   instrumentId: string | null;
+  /**
+   * Which part of the arrangement this person plays. Null in a jam room, and
+   * null in a song room until the song has been chosen.
+   *
+   * The *pattern* is not sent: the client already has every arrangement, so
+   * `songId` plus `roleId` plus the slice index is enough to derive it. That
+   * also keeps cue state entirely on the phone, where it belongs — it is nobody
+   * else's business how long someone took to find their part.
+   */
+  roleId: string | null;
+  /** Position within the role, which decides which hits are this person's. */
+  rolePart: number;
   isHost: boolean;
   /** Server time (ms) the participant joined. Used for the personal summary. */
   joinedAt: number;
@@ -81,6 +93,14 @@ export interface TransportState {
   bpm: number;
   cycleBeats: number;
   moodId: MoodId;
+  /**
+   * Root note override, in MIDI numbers.
+   *
+   * Moods carry their own root, which is enough for a free jam. A song may be in
+   * a key none of the three moods supplies, so it can override this and keep the
+   * mood's *scale* while moving where it sits.
+   */
+  rootMidi?: number;
   startedAt: number;
   /** Bumped on every transport change so clients can ignore stale updates. */
   revision: number;
@@ -95,9 +115,30 @@ export interface TransportState {
  */
 export type RoomPhase = "gathering" | "playing" | "ended";
 
+/**
+ * What kind of session this is.
+ *
+ * `jam` is the open circle: everyone lays down whatever they like.
+ * `song` starts from an arrangement — the room votes, and its tempo, key and
+ * mood come from the piece, with each person cued into a part. Cues fade
+ * person by person, and once everyone is released a song room simply *is* a jam
+ * room, in the world of that piece. The mode never flips back.
+ */
+export type RoomMode = "jam" | "song";
+
 export interface Room {
   code: string;
   phase: RoomPhase;
+  mode: RoomMode;
+  /** Chosen arrangement, once the room has voted. Null in a jam room. */
+  songId: string | null;
+  /**
+   * Who voted for what, keyed by participant id.
+   *
+   * Sent as raw votes rather than a tally so the lobby can show the count
+   * changing as people decide, and so a leaver's vote can be removed exactly.
+   */
+  votes: Record<string, string>;
   expectedSize: GroupSize;
   transport: TransportState;
   participants: Participant[];
@@ -175,6 +216,7 @@ export type Ack<T> = { ok: true; data: T } | { ok: false; error: ProtocolError }
 export interface CreateRoomPayload {
   hostName: string;
   expectedSize: GroupSize;
+  mode: RoomMode;
   protocolVersion: number;
 }
 
@@ -236,6 +278,13 @@ export interface ClientToServerEvents {
   "phrase:update": (p: Phrase) => void;
   "phrase:clear": () => void;
 
+  /**
+   * Cast or change this participant's vote for a song. Lobby only.
+   *
+   * Anyone may vote and may change their mind; the last vote per person counts.
+   */
+  "song:vote": (p: { songId: string }) => void;
+
   /** Host only. Server rejects with NOT_HOST otherwise. */
   "transport:update": (p: UpdateTransportPayload) => void;
   /** Host only. Moves the room from `gathering` to `playing`. */
@@ -273,6 +322,21 @@ export interface ServerToClientEvents {
     participantId: string;
     previousHostId: string;
     reason: HostChangeReason;
+  }) => void;
+
+  /** The lobby's votes changed. Keyed by participant id. */
+  "song:votes": (payload: { votes: Record<string, string> }) => void;
+
+  /**
+   * The song is settled and parts are handed out.
+   *
+   * Sent on `session:begin` in a song room, immediately before `session:began`,
+   * so every phone knows its role before the first bar sounds.
+   */
+  "song:chosen": (payload: {
+    songId: string;
+    /** Role and slice per participant id. */
+    parts: Record<string, { roleId: string; rolePart: number }>;
   }) => void;
 
   /** The host pressed Begin. Carries the transport with its final `startedAt`. */

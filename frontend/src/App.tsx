@@ -62,7 +62,8 @@ export default function App() {
       return (
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/start" element={<JoinScreen hosting />} />
+          <Route path="/start" element={<JoinScreen hosting mode="jam" />} />
+          <Route path="/start/song" element={<JoinScreen hosting mode="song" />} />
           <Route path="/join" element={<JoinScreen />} />
           <Route path="/r/:code" element={<JoinScreen />} />
           <Route path="*" element={<Landing />} />

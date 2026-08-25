@@ -45,15 +45,26 @@ export function Landing() {
         Sit down. Tap. Nobody can play a wrong note here.
       </p>
 
-      <Button
-        className="mt-9"
-        onClick={() => {
-          setLeaving(true);
-          navigate("/start");
-        }}
-      >
-        Start a Circle
-      </Button>
+      <div className="mt-9 flex w-full max-w-[300px] flex-col gap-3">
+        <Button
+          onClick={() => {
+            setLeaving(true);
+            navigate("/start");
+          }}
+        >
+          Jam together
+        </Button>
+        <Button
+          variant="outline"
+          className="!border-top/45 bg-top/[0.06] text-top"
+          onClick={() => {
+            setLeaving(true);
+            navigate("/start/song");
+          }}
+        >
+          Play a song together
+        </Button>
+      </div>
       <Button variant="quiet" className="mt-5" onClick={() => navigate("/join")}>
         or join with a link
       </Button>

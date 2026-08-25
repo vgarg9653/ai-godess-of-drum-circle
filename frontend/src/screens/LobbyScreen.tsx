@@ -1,9 +1,10 @@
-import { FAMILY_COLOR, getInstrument } from "@godc/shared";
+import { FAMILY_COLOR, SONGS, getInstrument } from "@godc/shared";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/Button";
 import { InstrumentIcon } from "@/components/InstrumentIcon";
 import { Notice } from "@/components/Notice";
+import { SongVote } from "@/components/SongVote";
 import { Screen } from "@/components/Screen";
 import { useIsHost, useSessionStore } from "@/state/sessionStore";
 
@@ -22,6 +23,7 @@ export function LobbyScreen() {
   const room = useSessionStore((s) => s.room);
   const youId = useSessionStore((s) => s.youId);
   const begin = useSessionStore((s) => s.beginSession);
+  const voteSong = useSessionStore((s) => s.voteSong);
   const endSession = useSessionStore((s) => s.endSession);
   const leave = useSessionStore((s) => s.leave);
   const isHost = useIsHost();
@@ -38,6 +40,58 @@ export function LobbyScreen() {
 
   const people = room.participants;
   const radius = 130;
+  const voting = room.mode === "song" && !room.songId;
+
+  // Whichever piece is ahead, by the same rule the server uses.
+  const leader = (() => {
+    const tally = new Map<string, number>();
+    for (const songId of Object.values(room.votes)) {
+      tally.set(songId, (tally.get(songId) ?? 0) + 1);
+    }
+    let best = SONGS[0];
+    let most = -1;
+    for (const song of SONGS) {
+      const n = tally.get(song.id) ?? 0;
+      if (n > most) {
+        most = n;
+        best = song;
+      }
+    }
+    return best;
+  })();
+
+  if (voting) {
+    return (
+      <Screen scroll className="items-center px-6">
+        <Notice />
+        <p className="mt-2 pl-1.5 text-[11.5px] uppercase tracking-[0.42em] text-gold">
+          What shall we play?
+        </p>
+        <p className="mb-5 mt-2 text-[12.5px] text-cream/45">
+          {people.length} in the circle · tap to vote, change your mind freely
+        </p>
+
+        <SongVote room={room} youId={youId} onVote={voteSong} />
+
+        <div className="sticky bottom-0 mt-6 w-full bg-gradient-to-t from-ink via-ink/90 to-transparent pb-2 pt-4">
+          {isHost ? (
+            <>
+              <Button className="w-full" onClick={begin}>
+                Play {leader.name}
+              </Button>
+              <p className="mt-2.5 text-center text-[11px] text-cream/35">
+                everyone gets a part · cues fade as you find it
+              </p>
+            </>
+          ) : (
+            <p className="godc-breathe text-center text-[13px] text-cream/50">
+              the host will start us off
+            </p>
+          )}
+        </div>
+      </Screen>
+    );
+  }
 
   return (
     <Screen className="items-center px-0">

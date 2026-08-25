@@ -9,13 +9,18 @@
 import { create } from "zustand";
 import {
   PROTOCOL_VERSION,
+  distributeRole,
   getInstrument,
+  getRole,
+  getSong,
+  quantizeToStep,
   type GroupSize,
   type MoodId,
   type Participant,
   type Phrase,
   type Room,
   type SessionSummary,
+  type RoomMode,
   type Stroke,
   type UpdateTransportPayload,
 } from "@godc/shared";
@@ -28,6 +33,13 @@ import {
   refit,
   seedFromId,
 } from "@/engine/phrase";
+import {
+  advanceCues as stepCues,
+  makeCues,
+  registerTap,
+  staggerFor,
+  type Cue,
+} from "@/engine/cues";
 import { preloadSamples, type PreloadProgress } from "@/engine/preload";
 import { MockRoomClient } from "@/net/mockClient";
 import { SocketRoomClient } from "@/net/socketClient";
@@ -71,7 +83,7 @@ export const GROOVE_MIN_TAPS = 3;
  * nothing repeats yet, and the room cannot hear them.
  * `locked` — the take came round the cycle and is now looping to the room.
  */
-export type LoopState = "open" | "locked";
+export type LoopState = "cued" | "open" | "locked";
 
 interface SessionState {
   phase: Phase;
@@ -85,11 +97,26 @@ interface SessionState {
   trance: boolean;
   /** Transient banner: the circle changed hands, someone left, and so on. */
   notice: string | null;
-  /** Whether this player's take is still being laid down, or looping. */
+  /** Whether this player's take is cued, being laid down, or looping. */
   loopState: LoopState;
+  /**
+   * This person's cued hits, while learning a song part.
+   *
+   * Deliberately local: never sent, never stored, never compared. How long
+   * somebody took to find their part is nobody else's business, including the
+   * server's.
+   */
+  cues: Cue[];
+  mode: RoomMode;
+  songId: string | null;
   clockRtt: number;
 
-  createRoom: (hostName: string, expectedSize: GroupSize) => Promise<void>;
+  createRoom: (
+    hostName: string,
+    expectedSize: GroupSize,
+    mode: RoomMode,
+  ) => Promise<void>;
+  voteSong: (songId: string) => void;
   joinRoom: (roomCode: string, name: string) => Promise<void>;
   /** Unlocks audio from a user gesture and plays a test hit. */
   soundCheck: (volume: number) => Promise<void>;
@@ -117,6 +144,9 @@ let tranceTimer: ReturnType<typeof setTimeout> | null = null;
 let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 /** The "tap again to change it" hint earns one showing, not one per take. */
 let grooveHintShown = false;
+/** Cycles since this person's part was cued. Not reactive; read on the bar. */
+let cueCycles = 0;
+let releaseAnnounced = false;
 
 export function getEngine(): AudioEngine | null {
   return engine;
@@ -147,6 +177,8 @@ export const useSessionStore = create<SessionState>((set, get) => {
     engine = null;
     client = null;
     grooveHintShown = false;
+    cueCycles = 0;
+    releaseAnnounced = false;
     usePlayheadStore.getState().reset();
   }
 
@@ -180,6 +212,9 @@ export const useSessionStore = create<SessionState>((set, get) => {
    * back round with you.
    */
   function lockTakeIfReady(): void {
+    cueCycles += 1;
+    advanceCues();
+
     const { loopState, phrase } = get();
     if (loopState !== "open" || !phrase) return;
     if (phrase.onsets.length < GROOVE_MIN_TAPS) return;
@@ -191,6 +226,74 @@ export const useSessionStore = create<SessionState>((set, get) => {
     if (!grooveHintShown) {
       grooveHintShown = true;
       say("That's your groove. Tap again to lay down a new one.", 7000);
+    }
+  }
+
+  /**
+   * Load this person's share of the arrangement and cue them into it.
+   *
+   * The part is playing from the first bar — that is what guarantees the room is
+   * full immediately and never falls silent when cues later let go. The player
+   * is not building it; they are being invited to join something already
+   * sounding.
+   */
+  function seedSongPart(): void {
+    const { room, youId } = get();
+    if (!room || !youId || !room.songId) return;
+
+    const song = getSong(room.songId);
+    const me = room.participants.find((p) => p.id === youId);
+    if (!song || !me?.roleId) return;
+    const role = getRole(song, me.roleId);
+    if (!role) return;
+
+    const members = room.participants.filter((p) => p.roleId === me.roleId).length;
+    const onsets = distributeRole(
+      role,
+      me.rolePart,
+      members,
+      room.participants.length,
+      song.cycleBeats,
+    );
+
+    const phrase: Phrase = {
+      instrumentId: me.instrumentId ?? phraseInstrument(),
+      revision: 1,
+      onsets,
+    };
+
+    set({
+      phrase,
+      loopState: "cued",
+      cues: makeCues(onsets.map((o) => o.step)),
+    });
+    engine?.setLocalPhrase(phrase);
+    // The part sounds from bar one, cued or not.
+    engine?.setLocalLoopEnabled(true);
+    client?.updatePhrase(phrase);
+  }
+
+  function phraseInstrument(): string {
+    return get().phrase?.instrumentId ?? "tabla";
+  }
+
+  /**
+   * Let go of the cues that have been found, and of everything once the clock
+   * runs out. Called on every cycle boundary.
+   */
+  function advanceCues(): void {
+    const state = get();
+    if (state.loopState !== "cued" || state.cues.length === 0) return;
+
+    const stagger = staggerFor(state.youId ? seedFromId(state.youId) : 0);
+    const { cues, allReleased } = stepCues(state.cues, cueCycles, stagger);
+
+    set({ cues, ...(allReleased ? { loopState: "locked" as LoopState } : {}) });
+
+    if (allReleased && !releaseAnnounced) {
+      releaseAnnounced = true;
+      // Said once, quietly. Never "well done".
+      say("The part is yours now. Play with it.", 6000);
     }
   }
 
@@ -208,7 +311,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
     subscriptions.push(
       client.on("room:state", (room) => {
-        set({ room });
+        set({ room, mode: room.mode, songId: room.songId });
         engine?.setTransport(room.transport);
         for (const [participantId, phrase] of Object.entries(room.phrases)) {
           if (participantId !== get().youId) {
@@ -274,6 +377,34 @@ export const useSessionStore = create<SessionState>((set, get) => {
           const count = get().room?.participants.length ?? 1;
           pushPhrase(refit(phrase, previous.cycleBeats, transport.cycleBeats, count));
         }
+      }),
+    );
+
+    subscriptions.push(
+      client.on("song:votes", ({ votes }) => {
+        set((state) => (state.room ? { room: { ...state.room, votes } } : state));
+      }),
+    );
+
+    subscriptions.push(
+      client.on("song:chosen", ({ songId, parts }) => {
+        set((state) => {
+          if (!state.room) return state;
+          return {
+            songId,
+            room: {
+              ...state.room,
+              songId,
+              participants: state.room.participants.map((p) => {
+                const part = parts[p.id];
+                return part
+                  ? { ...p, roleId: part.roleId, rolePart: part.rolePart }
+                  : p;
+              }),
+            },
+          };
+        });
+        seedSongPart();
       }),
     );
 
@@ -435,12 +566,22 @@ export const useSessionStore = create<SessionState>((set, get) => {
     trance: false,
     notice: null,
     loopState: "open",
+    cues: [],
+    mode: "jam",
+    songId: null,
     clockRtt: 0,
 
-    createRoom: (hostName, expectedSize) =>
+    createRoom: (hostName, expectedSize, mode) =>
       enterRoom((c) =>
-        c.createRoom({ hostName, expectedSize, protocolVersion: PROTOCOL_VERSION }),
+        c.createRoom({
+          hostName,
+          expectedSize,
+          mode,
+          protocolVersion: PROTOCOL_VERSION,
+        }),
       ),
+
+    voteSong: (songId) => client?.voteSong(songId),
 
     joinRoom: (roomCode, name) =>
       enterRoom((c) =>
@@ -506,6 +647,28 @@ export const useSessionStore = create<SessionState>((set, get) => {
     strike: (stroke) => {
       const { phrase, room, youId, loopState } = get();
       if (!phrase || !room || !clock || !youId) return;
+
+      // Cued into a song part: tapping is playing along, not editing. The
+      // arrangement keeps looping whatever the player does, and their tap sounds
+      // immediately on top of it.
+      if (loopState === "cued") {
+        const step = quantizeToStep(
+          (clock.now() - room.transport.startedAt) / 1000,
+          room.transport.bpm,
+          room.transport.cycleBeats,
+        );
+        const steps = room.transport.cycleBeats * 4;
+        set((state) => ({ cues: registerTap(state.cues, step, steps) }));
+
+        const onset = phrase.onsets.find((o) => o.step === step) ?? {
+          step,
+          velocity: 0.85,
+          stroke,
+        };
+        engine?.auditionOnset({ ...onset, stroke }, false);
+        get().wake();
+        return;
+      }
 
       // Tapping on a groove that is already going means "I want a different
       // one". The old take goes, and this tap is the first of the new one.

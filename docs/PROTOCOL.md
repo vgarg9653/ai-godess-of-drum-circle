@@ -1,6 +1,6 @@
 # Wire protocol — frontend ↔ backend
 
-**Status:** v2, frozen enough to build against.
+**Status:** v3. See [SONG_MODE.md](SONG_MODE.md) for what v3 added and why.
 **Source of truth:** [`shared/src/protocol.ts`](../shared/src/protocol.ts). This document
 explains the *why*; the TypeScript is the *what*. If the two disagree, the
 TypeScript wins and this file is out of date.
@@ -258,6 +258,23 @@ throw across the wire. `message` is shown to the user, so write it for a person
 standing in a room, not for a log file.
 
 ---
+
+## What changed in v3
+
+Song mode. Full rationale in [SONG_MODE.md](SONG_MODE.md).
+
+- `Room.mode` (`jam` | `song`), `Room.songId`, `Room.votes`
+- `Participant.roleId` and `.rolePart`
+- `TransportState.rootMidi?` — a key override, since three fixed moods cannot
+  express every key a piece might be in
+- `song:vote` in; `song:votes` and `song:chosen` out
+
+Two things a server implementer should know:
+
+- **Arrangements never travel.** Every client ships the catalogue, so
+  `songId` + `roleId` + `rolePart` is enough for a phone to derive its own part.
+- **Cue state is not the server's business.** Whether and when somebody found
+  their part stays on their phone. Do not add it to the protocol.
 
 ## What changed in v2
 

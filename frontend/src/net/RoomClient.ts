@@ -34,6 +34,9 @@ export interface RoomClient {
   updatePhrase(phrase: Phrase): void;
   clearPhrase(): void;
 
+  /** Cast or change this participant's vote in the lobby. */
+  voteSong(songId: string): void;
+
   updateTransport(p: UpdateTransportPayload): void;
   /** Host only. Moves the room out of the lobby. */
   beginSession(): void;

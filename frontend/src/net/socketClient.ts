@@ -123,6 +123,10 @@ export class SocketRoomClient implements RoomClient {
     this.socket?.emit("phrase:clear");
   }
 
+  voteSong(songId: string): void {
+    this.socket?.emit("song:vote", { songId });
+  }
+
   updateTransport(p: UpdateTransportPayload): void {
     this.socket?.emit("transport:update", p);
   }

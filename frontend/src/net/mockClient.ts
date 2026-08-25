@@ -16,8 +16,13 @@ import {
   MOOD_DEFAULT,
   PROTOCOL_VERSION,
   allocateInstrument,
+  assignRole,
   degreeForOnset,
+  distributeRole,
+  getSong,
+  memberIndexFor,
   nextHost,
+  SONGS,
   getInstrument,
   gridSteps,
   maxOnsets,
@@ -228,6 +233,8 @@ export class MockRoomClient implements RoomClient {
       id: this.youId,
       name,
       instrumentId: null,
+      roleId: null,
+      rolePart: 0,
       isHost,
       joinedAt: now,
       connected: true,
@@ -236,6 +243,9 @@ export class MockRoomClient implements RoomClient {
     const room: Room = {
       code: "roomCode" in p ? p.roomCode.toUpperCase() : makeCode(),
       phase: "gathering",
+      mode: "mode" in p ? p.mode : "jam",
+      songId: null,
+      votes: {},
       expectedSize,
       transport: {
         bpm: BPM_DEFAULT,
@@ -253,6 +263,17 @@ export class MockRoomClient implements RoomClient {
     };
 
     this.seedFakes(room);
+
+    if (room.mode === "song") {
+      // Synthetic participants have opinions. Spread them over a few pieces so
+      // the tally is worth looking at rather than unanimous.
+      const shortlist = SONGS.slice(0, 4);
+      room.participants
+        .filter((q) => q.id !== this.youId)
+        .forEach((q, i) => {
+          room.votes[q.id] = shortlist[i % shortlist.length].id;
+        });
+    }
 
     if (!isHost) {
       // Someone opened this circle before you arrived. Without a host among the
@@ -281,6 +302,8 @@ export class MockRoomClient implements RoomClient {
         id,
         name: FAKE_NAMES[i % FAKE_NAMES.length],
         instrumentId: instrument.id,
+        roleId: null,
+        rolePart: 0,
         isHost: false,
         // Stagger arrivals across the last few minutes. Everyone sharing a
         // millisecond is not just unrealistic — it makes "longest-present"
@@ -305,6 +328,8 @@ export class MockRoomClient implements RoomClient {
       if (!room || room.endedAt !== null) return;
       const fakes = room.participants.filter((p) => p.id.startsWith("mock-"));
       if (fakes.length === 0) return;
+      // In a song room the parts are the arrangement; do not churn them.
+      if (room.mode === "song" && room.songId) return;
       const target = fakes[Math.floor(Math.random() * fakes.length)];
       if (!target.instrumentId) return;
       const phrase = generatePhrase(
@@ -405,6 +430,38 @@ export class MockRoomClient implements RoomClient {
     delete this.room.phrases[this.youId];
   }
 
+  voteSong(songId: string): void {
+    const room = this.room;
+    if (!room || room.phase !== "gathering") return;
+    room.votes[this.youId] = songId;
+    this.emit("song:votes", { votes: { ...room.votes } });
+  }
+
+  /**
+   * Which piece the room chose.
+   *
+   * Most votes wins; catalogue order breaks a tie so every device lands on the
+   * same answer. An empty lobby falls back to the first piece rather than
+   * refusing to start — a room that will not begin is worse than one that
+   * begins with the easy one.
+   */
+  private winningSong(room: Room): string {
+    const tally = new Map<string, number>();
+    for (const songId of Object.values(room.votes)) {
+      tally.set(songId, (tally.get(songId) ?? 0) + 1);
+    }
+    let best = SONGS[0].id;
+    let most = -1;
+    for (const song of SONGS) {
+      const n = tally.get(song.id) ?? 0;
+      if (n > most) {
+        most = n;
+        best = song.id;
+      }
+    }
+    return best;
+  }
+
   updateTransport(p: UpdateTransportPayload): void {
     const room = this.room;
     if (!room) return;
@@ -420,6 +477,63 @@ export class MockRoomClient implements RoomClient {
   beginSession(): void {
     const room = this.room;
     if (!room) return;
+
+    if (room.mode === "song" && !room.songId) {
+      const songId = this.winningSong(room);
+      const song = getSong(songId);
+      if (song) {
+        room.songId = songId;
+
+        // Roles are fitted to the instrument each person already chose and
+        // previewed, not the other way round.
+        const takenRoleIds: string[] = [];
+        const parts: Record<string, { roleId: string; rolePart: number }> = {};
+        for (const participant of room.participants) {
+          const instrument = participant.instrumentId
+            ? getInstrument(participant.instrumentId)
+            : undefined;
+          const role = assignRole(song, takenRoleIds, instrument?.family);
+          participant.roleId = role.id;
+          participant.rolePart = memberIndexFor(takenRoleIds, role.id);
+          parts[participant.id] = { roleId: role.id, rolePart: participant.rolePart };
+          takenRoleIds.push(role.id);
+        }
+
+        // The piece sets the room's tempo, metre, mood and key.
+        room.transport = {
+          ...room.transport,
+          bpm: song.bpm,
+          cycleBeats: song.cycleBeats,
+          moodId: song.moodId,
+          ...(song.rootMidi !== undefined ? { rootMidi: song.rootMidi } : {}),
+        };
+
+        // Everyone else's loop is their share of the arrangement, so the room
+        // sounds like the piece from the first bar.
+        const members = (roleId: string) =>
+          room.participants.filter((q) => q.roleId === roleId).length;
+        for (const participant of room.participants) {
+          if (participant.id === this.youId || !participant.roleId) continue;
+          const role = song.roles.find((r) => r.id === participant.roleId);
+          if (!role) continue;
+          room.phrases[participant.id] = {
+            instrumentId: participant.instrumentId ?? "tabla",
+            revision: 1,
+            onsets: distributeRole(
+              role,
+              participant.rolePart,
+              members(participant.roleId),
+              room.participants.length,
+              song.cycleBeats,
+            ),
+          };
+        }
+
+        this.emit("song:chosen", { songId, parts });
+        this.emit("room:state", { ...room });
+      }
+    }
+
     room.phase = "playing";
     // Re-origin the transport on a whole second in the near future, so cycle
     // zero starts cleanly rather than halfway through a bar.

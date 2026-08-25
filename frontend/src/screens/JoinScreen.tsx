@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { GROUP_SIZES, type GroupSize } from "@godc/shared";
+import { GROUP_SIZES, type GroupSize, type RoomMode } from "@godc/shared";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { useSessionStore } from "@/state/sessionStore";
@@ -15,7 +15,13 @@ import { useSessionStore } from "@/state/sessionStore";
  * the target instrument balance for the whole room. Asking later would mean
  * re-allocating instruments people had already settled into.
  */
-export function JoinScreen({ hosting = false }: { hosting?: boolean }) {
+export function JoinScreen({
+  hosting = false,
+  mode = "jam",
+}: {
+  hosting?: boolean;
+  mode?: RoomMode;
+}) {
   const { code } = useParams<{ code: string }>();
   const createRoom = useSessionStore((s) => s.createRoom);
   const joinRoom = useSessionStore((s) => s.joinRoom);
@@ -44,14 +50,14 @@ export function JoinScreen({ hosting = false }: { hosting?: boolean }) {
     } catch {
       // Remembering the name is a courtesy, not a requirement.
     }
-    if (hosting && size) void createRoom(trimmed, size);
+    if (hosting && size) void createRoom(trimmed, size, mode);
     else void joinRoom(manualCode.trim().toUpperCase(), trimmed);
   }
 
   return (
     <Screen className="justify-center px-9">
       <p className="text-[11.5px] uppercase tracking-[0.42em] text-gold">
-        Tonight’s circle
+        {mode === "song" ? "Tonight’s song" : "Tonight’s circle"}
       </p>
       <h1 className="mt-3.5 font-display text-[31px] leading-tight text-pretty">
         What should the circle call you?
@@ -119,7 +125,11 @@ export function JoinScreen({ hosting = false }: { hosting?: boolean }) {
       {error && <p className="mt-5 text-sm text-bass">{error}</p>}
 
       <Button className="mt-10 self-start" disabled={!ready} onClick={go}>
-        {hosting ? "Open the circle" : "Enter the circle"}
+        {hosting
+          ? mode === "song"
+            ? "Pick a song together"
+            : "Open the circle"
+          : "Enter the circle"}
       </Button>
       <p className="mt-5 text-[12.5px] text-cream/40">
         No account. No email. Just your name in the ring.

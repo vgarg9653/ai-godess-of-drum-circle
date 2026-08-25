@@ -283,7 +283,21 @@ export class AudioEngine {
    * it. What you hear live is your hand; what the room hears next time round is
    * the grid.
    */
-  auditionOnset(onset: Onset): void {
+  auditionOnset(
+    onset: Onset,
+    /**
+     * Whether the loop should skip its own copy of this hit.
+     *
+     * True while laying down a take: the hand already played it, so the loop
+     * repeating it a fraction later would flam.
+     *
+     * False while cued into a song part. There the loop *is* the arrangement and
+     * must keep sounding whatever the player does — and hearing your tap land
+     * on top of your part, or slightly beside it, is how a person finds the
+     * groove. That is the instrument behaving like an instrument, not a score.
+     */
+    suppressLoopHit = true,
+  ): void {
     if (!this.started || !this.localVoice || !this.transport) return;
     const instrument = this.localInstrumentId
       ? getInstrument(this.localInstrumentId)
@@ -309,7 +323,7 @@ export class AudioEngine {
     // If the quantized step is still ahead of the playhead, the loop would
     // sound it again moments from now — a flam against the hand that just
     // played it. Skip it once; from the next cycle it repeats normally.
-    if (this.localLoopEnabled && onset.step >= this.currentStep) {
+    if (suppressLoopHit && this.localLoopEnabled && onset.step >= this.currentStep) {
       this.suppressOnce.add(onset.step);
     }
   }
