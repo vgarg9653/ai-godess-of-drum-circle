@@ -76,6 +76,31 @@ exactly what belongs there and what each file is.
 missing — a typo in a filename is silence, and silence is very hard to notice in
 a room already full of other people's drums.
 
+## Levelling
+
+`tools/level-kit.mjs` matches the kit's perceived loudness. Run it after adding
+or replacing any file:
+
+```bash
+node tools/level-kit.mjs          # report
+node tools/level-kit.mjs --apply  # rewrite
+```
+
+The kit arrived **peak**-normalised, which is not loudness-matched: peaks sat
+near 0dB while perceived level ranged over 25dB. `stomp_a` needed −17dB — it
+would have flattened everyone else in the room — and two claps were **above
+0 dBFS**, which is distortion rather than volume.
+
+It measures mean volume rather than EBU R128, because `loudnorm` needs roughly
+three seconds to gate properly and most of this kit is under one second; it
+silently declines to measure exactly the files that most need it.
+
+Gain is clamped so nothing is pushed past the ceiling. A short percussive sound
+cannot be boosted past its own peak without a limiter, and squashing a drum
+attack to win 3dB is a bad trade — so a few files stay quieter and are lifted in
+`soundBank.ts` via per-file `gains` instead, where the master limiter is
+downstream to catch them.
+
 ## Latency
 
 `AudioEngine.auditionOnset` schedules a tap with `Tone.immediate()`, **not**

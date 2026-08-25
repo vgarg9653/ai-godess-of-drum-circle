@@ -96,12 +96,14 @@ class PlayersVoice implements Voice {
 
   trigger(o: TriggerOptions): void {
     if (!this.buffers.loaded) return;
-    const buffer = this.buffers.get(this.fileFor(o.stroke));
+    const file = this.fileFor(o.stroke);
+    const buffer = this.buffers.get(file);
     if (!buffer) return;
 
     // ToneBufferSource has no gain of its own, so velocity rides on a short
     // lived Gain. One node per hit is cheap next to genuine polyphony.
-    const gain = new Tone.Gain(velocityFor(o)).connect(this.out);
+    const lift = Tone.dbToGain(this.spec.gains?.[file] ?? 0);
+    const gain = new Tone.Gain(velocityFor(o) * lift).connect(this.out);
     const source = new Tone.ToneBufferSource(buffer).connect(gain);
     source.onended = () => {
       this.live.delete(source);

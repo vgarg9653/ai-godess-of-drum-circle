@@ -30,8 +30,18 @@ export type StrokeFiles = string | readonly string[];
 export interface SoundSpec {
   kind: "players";
   strokes: Record<Stroke, StrokeFiles>;
-  /** Level trim in dB, so instruments sit together. */
+  /** Level trim in dB for the whole instrument. */
   trimDb?: number;
+  /**
+   * Per-file gain in dB, on top of `trimDb`.
+   *
+   * `tools/level-kit.mjs` matches the files themselves, but it will not boost a
+   * short percussive sound past its own peak — squashing a drum attack through a
+   * limiter to win a few dB is a bad trade. A handful of files therefore stay
+   * quieter than the rest, and are lifted here instead, where the master limiter
+   * is downstream and can catch anything that gets close.
+   */
+  gains?: Record<string, number>;
 }
 
 /** Everything is served from here. Flat, because the kit is small. */
@@ -43,6 +53,9 @@ export const SOUND_BANK: Record<string, SoundSpec> = {
     kind: "players",
     // a = low resonant (dha), b = bright ringing (na).
     strokes: { outer: "tabla_a", center: "tabla_b", sweep: "tabla_b" },
+    // The bright `na` came in 8dB under everything else. Lifted, but not all the
+    // way: on a real tabla `na` genuinely is the quieter stroke.
+    gains: { tabla_b: 6 },
   },
   dholak: {
     kind: "players",
@@ -56,7 +69,6 @@ export const SOUND_BANK: Record<string, SoundSpec> = {
       center: ["claps_b", "claps_a"],
       sweep: ["claps_a", "claps_b"],
     },
-    trimDb: -1,
   },
   stomp: {
     kind: "players",
@@ -66,17 +78,16 @@ export const SOUND_BANK: Record<string, SoundSpec> = {
     kind: "players",
     // a = tight tick, b = loose wash.
     strokes: { outer: "shaker_a", center: "shaker_b", sweep: "shaker_b" },
-    trimDb: -3,
+    gains: { shaker_a: 4, shaker_b: 2 },
   },
   kartal: {
     kind: "players",
     strokes: { outer: "kartal_a", center: "kartal_a", sweep: "kartal_a" },
-    trimDb: -2,
+    gains: { kartal_a: 3 },
   },
   manjira: {
     kind: "players",
     strokes: { outer: "manjira_a", center: "manjira_a", sweep: "manjira_a" },
-    trimDb: -4,
   },
 
   /* ---- Deep ---------------------------------------------------- */
@@ -88,14 +99,12 @@ export const SOUND_BANK: Record<string, SoundSpec> = {
     kind: "players",
     // a = D (root), b = A (fifth). Both already in the room's key.
     strokes: { outer: "bass_a", center: "bass_b", sweep: "bass_a" },
-    trimDb: -2,
   },
 
   /* ---- Background ---------------------------------------------- */
   guitar: {
     kind: "players",
     strokes: { outer: "guitar_a", center: "guitar_a", sweep: "guitar_a" },
-    trimDb: -5,
   },
 
   /* ---- Melody -------------------------------------------------- */
@@ -103,7 +112,6 @@ export const SOUND_BANK: Record<string, SoundSpec> = {
     kind: "players",
     // a = D major, b = D minor. Both agree with the drone; neither is wrong.
     strokes: { outer: "sitar_a", center: "sitar_b", sweep: "sitar_a" },
-    trimDb: -3,
   },
 };
 
