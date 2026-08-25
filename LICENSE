@@ -19,18 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-NOTE ON BUNDLED AUDIO
-
-This licence covers the source code in this repository. It does NOT cover the
-audio files in frontend/public/samples/, which are derived from third-party
-sample libraries and carry their own terms:
-
-  - Unpitched percussion — CC0 1.0 Universal (public domain dedication)
-  - Pitched voices      — MIT, (C) 2012 Benjamin Gleitzman
-
-Full texts are in licenses/, per-file attribution is in
-frontend/public/samples/CREDITS.md, and the sources are declared in
-tools/sample-sources.json.

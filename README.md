@@ -64,9 +64,5 @@ See [`CLAUDE.md`](CLAUDE.md) for architecture and open work.
 
 ## Licence
 
-Code is [MIT](LICENSE).
-
-The bundled audio is **not** — it comes from third-party sample libraries under
-CC0 and MIT and keeps its own terms. Full texts in [`licenses/`](licenses/),
-per-instrument attribution in `frontend/public/samples/CREDITS.md`. The MIT
-notice for the pitched samples must travel with the audio; don't delete it.
+Code is [MIT](LICENSE). The bundled audio is **not** — see
+[`NOTICE.md`](NOTICE.md).
