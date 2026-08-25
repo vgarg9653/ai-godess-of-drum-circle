@@ -18,3 +18,8 @@ coverage/
 # them and the app works normally; KIT.md below records what they are.
 # See docs/AUDIO_ASSETS.md for how to put this right.
 frontend/public/essential-kit/*.mp3
+
+# A local backup of the previous CC0/MIT sample set. Nothing references it, and
+# `node tools/fetch-samples.mjs` rebuilds it exactly, so it does not need to be
+# carried in the repo.
+frontend/public/samples-old/

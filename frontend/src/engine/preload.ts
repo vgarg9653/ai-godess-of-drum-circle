@@ -22,9 +22,11 @@ export interface PreloadProgress {
   failed: string[];
 }
 
-/** Human-facing name from a sample URL: "/samples/sitar/C4.mp3" -> "sitar". */
+/** Human-facing name from a sample URL: "/essential-kit/tabla_a.mp3" -> "tabla". */
 function instrumentFromUrl(url: string): string {
-  return url.split("/")[2] ?? "";
+  const file = url.split("/").pop() ?? "";
+  // "tabla_a.mp3" -> "tabla"
+  return file.replace(/\.mp3$/, "").replace(/_[a-z]$/, "");
 }
 
 /**
