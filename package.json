@@ -12,7 +12,9 @@
     "dev": "npm run dev --workspace frontend",
     "build": "npm run build --workspace shared && npm run build --workspace frontend",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "dev:backend": "npm run dev --workspace backend",
+    "start": "npm run start --workspace backend"
   },
   "engines": {
     "node": ">=20"

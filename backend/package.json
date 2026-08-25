@@ -3,8 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Node/Socket.IO room server. Owned by the backend developer — see docs/PROTOCOL.md.",
+  "description": "The room server. Node + Socket.IO, implementing protocol v3 from @godc/shared.",
   "scripts": {
-    "dev": "echo 'Not implemented yet. See backend/README.md.' && exit 1"
-  }
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@godc/shared": "*",
+    "socket.io": "^4.8.1",
+    "tsx": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.3.0",
+    "socket.io-client": "^4.8.1",
+    "typescript": "^5.6.3",
+    "vitest": "^3.2.7"
+  },
+  "engines": { "node": ">=20" }
 }
