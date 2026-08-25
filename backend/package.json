@@ -1,0 +1,10 @@
+{
+  "name": "@godc/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Node/Socket.IO room server. Owned by the backend developer — see docs/PROTOCOL.md.",
+  "scripts": {
+    "dev": "echo 'Not implemented yet. See backend/README.md.' && exit 1"
+  }
+}

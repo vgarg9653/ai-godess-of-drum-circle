@@ -1,0 +1,203 @@
+@import "tailwindcss";
+
+/**
+ * Design tokens.
+ *
+ * Dark, warm, and not theme-switchable. These sessions happen in dim rooms —
+ * retreats, workshops, evenings — and a white screen in a circle of people is a
+ * lantern in everyone's face. The palette is deep violet rather than neutral
+ * black so the screens recede and the room stays the thing people look at.
+ *
+ * Families are colour-coded, and that coding is load-bearing: on the play canvas
+ * it is the only way to see the shape of the room at a glance.
+ */
+@theme {
+  --color-void: #060410;
+  --color-ink: #0d0917;
+  --color-ink-soft: #140c26;
+  --color-ink-raised: #1b1132;
+
+  --color-cream: #f6ecd9;
+  --color-gold: #ffc95c;
+
+  --color-rhythm: #ffaa33;
+  --color-bass: #ff5638;
+  --color-bed: #ff3d9a;
+  --color-top: #3fe3cd;
+
+  --font-display: "Rozha One", "Iowan Old Style", Palatino, Georgia, serif;
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-cream);
+  font-family: var(--font-sans);
+  /* The play surface is a drum head, not a document. Nothing here should
+     rubber-band, select, or pop a magnifier when a finger lands on it. */
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Inputs are the one place text selection should still work. */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  font-family: inherit;
+  outline: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* The one deep background, shared by every screen. */
+.godc-ground {
+  background: radial-gradient(
+    130% 90% at 50% 6%,
+    var(--color-ink-raised) 0%,
+    var(--color-ink) 58%,
+    var(--color-void) 100%
+  );
+}
+
+/**
+ * Film grain.
+ *
+ * A flat gradient this large bands visibly on phone screens. A little noise
+ * over the top breaks the bands up and gives the whole thing a warmer,
+ * less digital surface.
+ */
+.godc-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Range inputs: the host's tempo control, thumbed with a thumb. */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-bass), var(--color-rhythm));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  box-shadow: 0 0 18px rgba(255, 170, 51, 0.75);
+  margin-top: -12px;
+  border: 2px solid var(--color-ink);
+}
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-bass), var(--color-rhythm));
+}
+input[type="range"]::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  border: 2px solid var(--color-ink);
+  box-shadow: 0 0 18px rgba(255, 170, 51, 0.75);
+}
+
+/* ---------------------------------------------------------------- *
+ * Motion
+ * ---------------------------------------------------------------- */
+
+@keyframes godcSeq {
+  0%, 6% { opacity: 1; }
+  16%, 100% { opacity: 0.3; }
+}
+@keyframes godcBeat {
+  0% { transform: scale(1); }
+  7% { transform: scale(1.4); }
+  28%, 100% { transform: scale(1); }
+}
+@keyframes godcBreathe {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+@keyframes godcBloom {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  70% { opacity: 1; transform: translate(-50%, -50%) scale(1.14); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes godcRise {
+  0% { opacity: 0; transform: translate(-50%, -100%) translateY(10px); }
+  100% { opacity: 1; transform: translate(-50%, -100%) translateY(0); }
+}
+@keyframes godcSheet {
+  0% { opacity: 0; transform: translateY(18px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes godcSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes godcGlowIn {
+  0% { opacity: 0; transform: scale(0.94); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes godcCycle {
+  0% { opacity: 0; }
+  4%, 14% { opacity: 1; }
+  18%, 100% { opacity: 0; }
+}
+
+.godc-seq { animation: godcSeq 4.8s linear infinite; }
+.godc-beat { animation: godcBeat 4.8s ease-out infinite; }
+.godc-breathe { animation: godcBreathe 3.2s ease-in-out infinite; }
+.godc-bloom { animation: godcBloom 0.9s cubic-bezier(0.2, 0.8, 0.3, 1.25) both; }
+.godc-rise { animation: godcRise 0.3s ease both; }
+.godc-sheet { animation: godcSheet 0.32s ease both; }
+.godc-spin { animation: godcSpin 70s linear infinite; }
+.godc-glow-in { animation: godcGlowIn 0.6s ease both; }
+.godc-cycle { animation: godcCycle 7.2s linear infinite; opacity: 0; }
+
+/**
+ * Honour a reduced-motion preference everywhere except the playhead.
+ *
+ * A drum circle whose pulse stops moving is not a calmer drum circle, it is a
+ * broken one, so the beat marker keeps its animation and the decorative
+ * flourishes lose theirs.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.godc-beat),
+  *:not(.godc-beat)::before,
+  *:not(.godc-beat)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

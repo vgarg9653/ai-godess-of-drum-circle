@@ -1,0 +1,247 @@
+{
+  "sources": {
+    "VCSL": {
+      "base": "https://raw.githubusercontent.com/sgossner/VCSL/master/",
+      "license": "CC0-1.0",
+      "url": "https://github.com/sgossner/VCSL",
+      "note": "Versilian Community Sample Library. Public domain dedication."
+    },
+    "FluidR3_GM": {
+      "base": "https://raw.githubusercontent.com/gleitz/midi-js-soundfonts/gh-pages/FluidR3_GM/",
+      "license": "MIT",
+      "url": "https://github.com/gleitz/midi-js-soundfonts",
+      "note": "FluidR3_GM soundfont rendered to per-note MP3 by gleitz/midi-js-soundfonts."
+    }
+  },
+  "percussion": {
+    "cajon": {
+      "credit": "VCSL — Cajón",
+      "files": {
+        "open": "Idiophones/Struck Idiophones/Cajon/Cajon_hit1_f_rr1.wav",
+        "muted": "Idiophones/Struck Idiophones/Cajon/Cajon_hit3_mp_rr1.wav",
+        "accent": "Idiophones/Struck Idiophones/Cajon/Cajon_hit2_f_rr1.wav"
+      }
+    },
+    "claps": {
+      "credit": "VCSL — Claps",
+      "files": {
+        "open": "Idiophones/Struck Idiophones/Claps/Clap_rr1.wav",
+        "muted": "Idiophones/Struck Idiophones/Claps/SoloClap_vl3.wav",
+        "accent": "Idiophones/Struck Idiophones/Claps/Clap_rr4.wav"
+      }
+    },
+    "claves": {
+      "credit": "VCSL — Claves",
+      "files": {
+        "open": "Idiophones/Struck Idiophones/Claves/Claves1_Hit_v3_rr1_Mid.wav",
+        "muted": "Idiophones/Struck Idiophones/Claves/Claves2_Hit_v2_rr1_Mid.wav",
+        "accent": "Idiophones/Struck Idiophones/Claves/Legacy/claves_ff.wav"
+      }
+    },
+    "frameDrum": {
+      "credit": "VCSL — Frame Drum",
+      "files": {
+        "open": "Membranophones/Struck Membranophones/Frame Drum/HDrumL_Hit_v3_rr1_Sum.wav",
+        "muted": "Membranophones/Struck Membranophones/Frame Drum/HDrumL_HitMuted_v3_rr1_Sum.wav",
+        "accent": "Membranophones/Struck Membranophones/Frame Drum/HDrumS_Hit_v3_rr1_Sum.wav"
+      }
+    },
+    "conga": {
+      "credit": "VCSL — Conga",
+      "files": {
+        "open": "Membranophones/Struck Membranophones/Conga/Conga_HitN_v3_rr1_Sum.wav",
+        "muted": "Membranophones/Struck Membranophones/Conga/Conga_HitFM_v2_rr1_Sum.wav",
+        "accent": "Membranophones/Struck Membranophones/Conga/Conga_HitN_v2_rr2_Sum.wav"
+      }
+    },
+    "djembe": {
+      "credit": "VCSL — Darbuka (goblet drum, standing in for djembe)",
+      "files": {
+        "open": "Membranophones/Struck Membranophones/Darbuka/Darbuka_1_hit_vl2_rr1.wav",
+        "muted": "Membranophones/Struck Membranophones/Darbuka/Darbuka_3_hit_vl2_rr1.wav",
+        "accent": "Membranophones/Struck Membranophones/Darbuka/Darbuka_5_hit_vl2_rr1.wav"
+      }
+    },
+    "shaker": {
+      "credit": "VCSL — Shaker, Small",
+      "files": {
+        "open": "Idiophones/Struck Idiophones/Shaker, Small/Mid_ShakerDouble_Down_rr1.wav",
+        "muted": "Idiophones/Struck Idiophones/Shaker, Small/Mid_Shaker_Slap_rr1.wav",
+        "accent": "Idiophones/Struck Idiophones/Shaker, Small/Mid_ShakerHighFaster_Down_rr1.wav"
+      }
+    },
+    "kanjira": {
+      "credit": "VCSL — Tambourine 1 (frame drum with jingles, standing in for kanjira)",
+      "files": {
+        "open": "Idiophones/Struck Idiophones/Tambourine 1/Tamb1_Hit_v2_rr1_Mid.wav",
+        "muted": "Idiophones/Struck Idiophones/Tambourine 1/Tamb1_Hit_v1_rr1_Mid.wav",
+        "accent": "Idiophones/Struck Idiophones/Tambourine 1/Tamb1_Shake_rr1_Mid.wav"
+      }
+    },
+    "woodblock": {
+      "credit": "VCSL — Woodblock",
+      "files": {
+        "open": "Idiophones/Struck Idiophones/Woodblock/wood_click_f_rr1.wav",
+        "muted": "Idiophones/Struck Idiophones/Woodblock/wood_click_mp.wav",
+        "accent": "Idiophones/Struck Idiophones/Woodblock/wood_click_ff.wav"
+      }
+    },
+    "manjira": {
+      "credit": "VCSL — Hand Bells, Nepalese (small hand cymbals, standing in for manjira)",
+      "files": {
+        "open": "Idiophones/Struck Idiophones/Hand Bells, Nepalese/HB_1.wav",
+        "muted": "Idiophones/Struck Idiophones/Hand Bells, Nepalese/HB_2.wav",
+        "accent": "Idiophones/Struck Idiophones/Hand Bells, Nepalese/HB_3.wav"
+      }
+    },
+    "agogo": {
+      "credit": "VCSL — Agogo Bells",
+      "files": {
+        "open": "Idiophones/Struck Idiophones/Agogo Bells/Agogo_High_v2_rr1_Mid.wav",
+        "muted": "Idiophones/Struck Idiophones/Agogo Bells/Agogo_Low_v2_rr1_Mid.wav",
+        "accent": "Idiophones/Struck Idiophones/Agogo Bells/Agogo_High_v3_rr1_Mid.wav"
+      }
+    }
+  },
+  "pitched": {
+    "sitar": {
+      "gm": "sitar",
+      "notes": [
+        "C3",
+        "G3",
+        "C4",
+        "G4",
+        "C5"
+      ],
+      "credit": "FluidR3_GM — Sitar"
+    },
+    "shehnai": {
+      "gm": "shanai",
+      "notes": [
+        "C4",
+        "G4",
+        "C5",
+        "G5"
+      ],
+      "credit": "FluidR3_GM — Shanai"
+    },
+    "bansuri": {
+      "gm": "flute",
+      "notes": [
+        "C4",
+        "G4",
+        "C5",
+        "G5"
+      ],
+      "credit": "FluidR3_GM — Flute (standing in for bansuri)"
+    },
+    "santoor": {
+      "gm": "dulcimer",
+      "notes": [
+        "C3",
+        "G3",
+        "C4",
+        "G4",
+        "C5"
+      ],
+      "credit": "FluidR3_GM — Dulcimer (the santoor's own family)"
+    },
+    "harmonium": {
+      "gm": "reed_organ",
+      "notes": [
+        "C2",
+        "C3",
+        "G3",
+        "C4",
+        "G4"
+      ],
+      "credit": "FluidR3_GM — Reed Organ (a harmonium is a reed organ)"
+    },
+    "kalimba": {
+      "gm": "kalimba",
+      "notes": [
+        "C4",
+        "G4",
+        "C5",
+        "G5"
+      ],
+      "credit": "FluidR3_GM — Kalimba"
+    },
+    "marimba": {
+      "gm": "marimba",
+      "notes": [
+        "C3",
+        "C4",
+        "G4",
+        "C5"
+      ],
+      "credit": "FluidR3_GM — Marimba"
+    },
+    "glockenspiel": {
+      "gm": "glockenspiel",
+      "notes": [
+        "C5",
+        "G5",
+        "C6"
+      ],
+      "credit": "FluidR3_GM — Glockenspiel"
+    },
+    "birds": {
+      "gm": "bird_tweet",
+      "notes": [
+        "C5",
+        "G5",
+        "C6"
+      ],
+      "credit": "FluidR3_GM — Bird Tweet"
+    },
+    "bassPulse": {
+      "gm": "acoustic_bass",
+      "notes": [
+        "C1",
+        "G1",
+        "C2",
+        "G2"
+      ],
+      "credit": "FluidR3_GM — Acoustic Bass"
+    },
+    "taiko": {
+      "gm": "taiko_drum",
+      "notes": [
+        "C2",
+        "G2",
+        "C3"
+      ],
+      "credit": "FluidR3_GM — Taiko Drum"
+    },
+    "warmPad": {
+      "gm": "choir_aahs",
+      "notes": [
+        "C3",
+        "C4",
+        "G4"
+      ],
+      "credit": "FluidR3_GM — Choir Aahs"
+    },
+    "rhodes": {
+      "gm": "electric_piano_1",
+      "notes": [
+        "C2",
+        "C3",
+        "C4",
+        "C5"
+      ],
+      "credit": "FluidR3_GM — Electric Piano"
+    },
+    "koto": {
+      "gm": "koto",
+      "notes": [
+        "C3",
+        "G3",
+        "C4",
+        "G4"
+      ],
+      "credit": "FluidR3_GM — Koto"
+    }
+  }
+}
