@@ -127,14 +127,15 @@ Socket.IO · Vitest. npm workspaces monorepo, Node ≥ 20.
 | Install | `npm install` (repo root) |
 | **Fetch samples** | `node tools/fetch-samples.mjs` — **needs ffmpeg**, run once after clone |
 | Dev server | `npm run dev` → http://localhost:5173 |
+| Room server | `npm run dev:backend` → :3000 (`npm start` = production boot) |
 | Build | `npm run build` |
 | Typecheck | `npm run typecheck` |
 | Test | `npm test` |
 | Single test file | `cd frontend && npx vitest run src/engine/__tests__/phrase.test.ts` |
 
 The app runs fully without a backend. `VITE_SERVER_URL` unset → in-browser mock
-(`frontend/src/net/mockClient.ts`). Set it in `frontend/.env.local` for a real
-server.
+(`frontend/src/net/mockClient.ts`). Set it in `frontend/.env.local` to use the
+real server (`npm run dev:backend`). Deploying: `docs/DEPLOY.md`.
 
 ## Layout
 
@@ -337,7 +338,9 @@ Unresolved, and worth asking the user rather than guessing:
 
 ## Not yet built
 
-- **Backend.** Contract frozen at v2 in `docs/PROTOCOL.md`; `backend/` is a stub.
+- ~~Backend~~ — **built.** Node + Socket.IO in `backend/src/`, 44 wire evals,
+  plus `frontend/src/__tests__/wire.test.ts` running the production client
+  against it. Deploy story in `docs/DEPLOY.md`.
 - **Real recordings for five Indian instruments.** Tabla, dholak, ghatam, bayan
   and tanpura are modelled, not sampled — no CC0/MIT source exists that I could
   find. See `docs/AUDIO_ASSETS.md`. This is the biggest available sound upgrade.
@@ -346,11 +349,10 @@ Unresolved, and worth asking the user rather than guessing:
 - **Reconnect/rejoin.** `SocketRoomClient` reconnects, but rejoining an
   in-progress room and restoring your phrase is untested against a real server.
   The prototype's "The circle is holding your place" banner is not wired up.
-- **Host transfer end to end.** The rule, the protocol event and the client
-  notice all exist and are unit-tested, but a real hand-over needs the backend
-  or two browsers. `MockOptions.simulateHostDeparture` makes it observable
-  locally; it is off by default because it would baffle anyone just trying
-  the app.
+- **Host transfer end to end** is now covered on the wire
+  (`backend/src/__tests__/hosting.test.ts`): explicit leave, disconnect grace,
+  and offline candidates skipped. What remains untested is only the *browser
+  feel* of the hand-over notice.
 - **On-device testing.** Verified in desktop Chrome only. Touch behaviour, iOS
   audio unlock, and speaker levels need real phones.
 - **Sound is unverified by ear.** Browser automation cannot hear; the sample

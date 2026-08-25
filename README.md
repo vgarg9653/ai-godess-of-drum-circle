@@ -42,7 +42,7 @@ interfaces — use the Network URL Vite prints.
 shared/     Protocol types, musical constants, instrument roster.
             Imported by BOTH frontend and backend. The contract.
 frontend/   Vite + React + TypeScript + Tone.js. This is the app.
-backend/    Node + Socket.IO room server. Not written yet — see backend/README.md.
+backend/    Node + Socket.IO room server — protocol v3, 44 wire evals.
 docs/       PROTOCOL.md (the API contract), AUDIO_ASSETS.md (sample sourcing).
 tools/      Sample fetch pipeline and its licence manifest.
 ```
@@ -59,18 +59,25 @@ tools/      Sample fetch pipeline and its licence manifest.
 
 ## Status
 
-Frontend is complete and playable end to end against the mock: landing, join,
-preload gate, sound check, balanced instrument allocation with preview and swap,
-lobby, the play canvas, host controls, and the closing weave with a downloadable
-mandala.
+**Complete, end to end.** Frontend: landing with two modes (jam / song),
+join-by-link, preload gate, sound check, instruments handed out rather than
+chosen, lobby with live song voting, the Simon-Says cued play surface, host
+controls, per-person cue release, and the closing weave.
 
-31 instruments; 25 play real CC0/MIT recordings, six are hand-built models.
-See [`docs/AUDIO_ASSETS.md`](docs/AUDIO_ASSETS.md).
+**Backend: built.** Node + Socket.IO implementing protocol v3 — rooms, the
+shared clock, allocation, phrase validation and fan-out, the song settle, host
+succession with disconnect grace, per-recipient summaries. `npm start` boots
+it; [`docs/DEPLOY.md`](docs/DEPLOY.md) takes both halves live.
 
-Backend does not exist. The protocol it must implement is frozen and documented
-in [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
+**Eleven instruments, every one a real recording** — no synthesis, no
+pitch-shifting ([`docs/AUDIO_ASSETS.md`](docs/AUDIO_ASSETS.md)).
 
-See [`CLAUDE.md`](CLAUDE.md) for architecture and open work.
+**190 tests** across both ends, mapped promise-by-promise in
+[`docs/EVALS.md`](docs/EVALS.md) — including a scripted eight-person session,
+thirty-one phones at once, and the production client run against the
+production server.
+
+See [`CLAUDE.md`](CLAUDE.md) for architecture and what remains open.
 
 ## Deploying the frontend
 

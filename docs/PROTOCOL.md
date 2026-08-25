@@ -1,6 +1,9 @@
 # Wire protocol — frontend ↔ backend
 
-**Status:** v3. See [SONG_MODE.md](SONG_MODE.md) for what v3 added and why.
+**Status:** v3, and now **implemented** — `backend/src/` is the reference
+server, held to this contract by 44 integration evals plus a production-client
+round-trip test ([EVALS.md](EVALS.md)). See [SONG_MODE.md](SONG_MODE.md) for
+what v3 added and why.
 **Source of truth:** [`shared/src/protocol.ts`](../shared/src/protocol.ts). This document
 explains the *why*; the TypeScript is the *what*. If the two disagree, the
 TypeScript wins and this file is out of date.
