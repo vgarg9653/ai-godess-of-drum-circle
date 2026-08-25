@@ -1,4 +1,14 @@
-# Goddess of Drum Circle
+# AI Goddess of Drum Circle
+
+> **An independent variant.** This started as a copy of
+> [goddess-of-drum-circle](https://github.com/vgarg9653/goddess-of-drum-circle)
+> and goes its own way from here: its own backend, and free to change the
+> protocol, the instruments and the musical model. The two apps are **not**
+> expected to stay interoperable.
+>
+> The original repo is wired up as the `upstream` git remote, so fixes can be
+> carried across in either direction — see [`CLAUDE.md`](CLAUDE.md#staying-in-touch-with-upstream).
+
 
 A collaborative instrument for people who are physically in the same room.
 Everyone opens the same link, each phone becomes an instrument, and short tapped
@@ -61,6 +71,26 @@ Backend does not exist. The protocol it must implement is frozen and documented
 in [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
 
 See [`CLAUDE.md`](CLAUDE.md) for architecture and open work.
+
+## Deploying the frontend
+
+The frontend is a static build and deploys to Vercel from
+[`vercel.json`](vercel.json) with no further configuration — import the repo and
+it builds `frontend/dist` from the workspace root.
+
+Two things in that config are load-bearing:
+
+- **The catch-all rewrite.** Every route but `/` is client-side, and a room *is*
+  a link — `/r/ABCD`. Without the rewrite a phone opening a join link gets a 404
+  from the CDN before React ever runs, which breaks the one action the whole app
+  depends on. Vercel checks the filesystem before applying rewrites, so real
+  files like `/samples/tabla/open.mp3` are still served directly.
+- **Immutable caching on `/samples/`.** Sixty phones each pulling ~2MB over one
+  venue access point is the actual load pattern. The filenames never change, so
+  they cache for a year.
+
+The realtime backend cannot go on Vercel — see the note in
+[`backend/README.md`](backend/README.md).
 
 ## Licence
 

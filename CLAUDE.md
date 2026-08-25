@@ -2,6 +2,48 @@
 
 Guidance for Claude Code when working in this repository.
 
+## This repo is a variant
+
+It began as a copy of
+[goddess-of-drum-circle](https://github.com/vgarg9653/goddess-of-drum-circle),
+which someone else is building a backend for. **This one has its own backend and
+is free to diverge** — the protocol, the instrument roster and the musical model
+are all fair game here.
+
+So the usual warning is inverted: normally `shared/` must not drift, because the
+server and every client have to compute identical answers. That still holds
+*within this repo*. It no longer holds between the two repos, and it is not a
+bug when `shared/` here stops matching upstream.
+
+The one thing to keep straight: if a change is a genuine fix rather than a
+divergence — a real bug in the clock, the density formula, the allocator — it
+belongs upstream too. Carry it across rather than letting the same bug live on
+in two places.
+
+## Staying in touch with upstream
+
+The original is wired up as the `upstream` remote.
+
+```bash
+git fetch upstream
+
+# What has happened over there since we forked?
+git log --oneline HEAD..upstream/main
+
+# How far has the shared contract actually drifted?
+git diff upstream/main -- shared/
+
+# Take one specific fix
+git cherry-pick <sha>
+
+# Send a fix the other way (you own both repos)
+git push upstream HEAD:fix/some-shared-bug
+```
+
+Do not `git merge upstream/main` casually once the two have genuinely diverged —
+it will drag their protocol changes in wholesale and quietly undo intentional
+differences here. Cherry-pick the commit you actually want.
+
 ## What this is
 
 **Goddess of Drum Circle** — a collaborative musical instrument for a group of

@@ -1,6 +1,31 @@
-# Backend — Node + Socket.IO room server
+# Backend — the room server
 
 **Not implemented.** This directory is a placeholder so the workspace resolves.
+
+This variant has **its own backend**, independent of the one being built against
+[goddess-of-drum-circle](https://github.com/vgarg9653/goddess-of-drum-circle).
+Nothing here has to match that implementation, and the protocol below is a
+starting point rather than a contract with anyone else.
+
+## It cannot go on Vercel
+
+The frontend deploys to Vercel happily. The realtime server does not, and it is
+worth knowing why before trying:
+
+- Vercel functions cap out at **300s on Hobby**, 800s on Pro. Sessions are
+  **5 to 20 minutes**, so on Hobby the socket dies at the shortest session the
+  app supports.
+- Connections are not guaranteed to reach the same instance, and there is no
+  built-in cross-instance broadcast — two phones in one room could land on
+  different functions and effectively be in different rooms.
+- In-memory room state does not survive between invocations, which is exactly
+  what the design below assumes.
+- Cold starts and instance hops perturb the clock offset estimate, and the
+  shared clock is the thing that makes the room play in time at all.
+
+Run it somewhere with a persistent process — Railway, Render, Fly.io — or
+rebuild it on **Cloudflare Durable Objects / PartyKit**, where one object per
+room holding its own state and sockets maps almost exactly onto this design.
 
 ## Start here
 
