@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FAMILY_COLOR, FAMILY_LABEL, iconPath } from "@godc/shared";
+import { FAMILY_COLOR, FAMILY_HINT, FAMILY_LABEL, iconPath } from "@godc/shared";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { SwapSheet } from "@/components/SwapSheet";
@@ -95,8 +95,8 @@ export function InstrumentScreen() {
       <p className="mt-3.5 rounded-full border border-cream/30 px-4 py-1.5 text-[12.5px] uppercase tracking-[0.14em] text-cream/75">
         {instrument.feel}
       </p>
-      <p className="mt-2 text-[12px] text-cream/40">
-        you are {FAMILY_LABEL[instrument.family]} · tap the emblem to hear it
+      <p className="mt-2 text-[12px] text-cream/45">
+        you are the {FAMILY_LABEL[instrument.family]} — {FAMILY_HINT[instrument.family]}
       </p>
 
       <Button className="mt-8" onClick={takeSeat}>

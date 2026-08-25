@@ -1,5 +1,6 @@
 import {
   FAMILY_COLOR,
+  FAMILY_HINT,
   FAMILY_LABEL,
   swapOptions,
   type Instrument,
@@ -74,7 +75,7 @@ export function SwapSheet({
                       {instrument.feel}
                     </span>
                     <span className="text-[10.5px] text-cream/40">
-                      {FAMILY_LABEL[instrument.family]}
+                      {FAMILY_LABEL[instrument.family]} · {FAMILY_HINT[instrument.family]}
                     </span>
                   </span>
                 </span>

@@ -21,11 +21,27 @@ export const FAMILY_COLOR: Record<Family, string> = {
   top: "#3fe3cd",
 };
 
+/**
+ * What each family is called, in words a non-musician reads once and gets.
+ *
+ * These used to be "the pulse", "the ground", "the weave" and "the voice" —
+ * evocative, and nobody knew what "the weave" meant. Somebody handed an
+ * instrument in a room full of strangers needs to understand their job
+ * instantly, so plain beats poetic here.
+ */
 export const FAMILY_LABEL: Record<Family, string> = {
-  rhythm: "the pulse",
-  bass: "the ground",
-  bed: "the weave",
-  top: "the voice",
+  rhythm: "Beat",
+  bass: "Deep",
+  bed: "Background",
+  top: "Melody",
+};
+
+/** One line on what the family does, for the same reason. */
+export const FAMILY_HINT: Record<Family, string> = {
+  rhythm: "keeps time",
+  bass: "the low boom",
+  bed: "held notes underneath",
+  top: "the tune on top",
 };
 
 export interface Instrument {

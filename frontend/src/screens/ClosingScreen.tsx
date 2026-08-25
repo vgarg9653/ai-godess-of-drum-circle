@@ -116,7 +116,7 @@ export function ClosingScreen() {
                   className="w-[58px] flex-none text-right text-[10px] uppercase tracking-[0.14em]"
                   style={{ color }}
                 >
-                  {FAMILY_LABEL[family].replace("the ", "")}
+                  {FAMILY_LABEL[family]}
                 </span>
                 <div className="flex flex-1 gap-[3px]">
                   {cells.map((value, step) => (

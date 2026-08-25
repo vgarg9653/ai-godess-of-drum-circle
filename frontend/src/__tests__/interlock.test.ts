@@ -107,6 +107,49 @@ describe("the room hears the whole pattern", () => {
   }
 });
 
+describe("the authoring rule", () => {
+  it("keeps every pattern inside what one person may play", () => {
+    // The binding case is a role held by a single person in a room just big
+    // enough to have tightened the cap. Eight people is the worst of it: the
+    // cap is down to eight onsets while roles still have only one member each.
+    //
+    // This is the rule an arrangement must satisfy to be playable at all, and
+    // the one a generated arrangement has to be checked against.
+    const WORST_CASE_CAP = maxOnsets(8, 8);
+    for (const song of SONGS) {
+      for (const role of song.roles) {
+        expect(
+          role.pattern.length,
+          `${song.id}/${role.id} has ${role.pattern.length} hits, more than one person may play`,
+        ).toBeLessThanOrEqual(WORST_CASE_CAP);
+      }
+    }
+  });
+
+  it("keeps role counts in the range the brief asks for", () => {
+    for (const song of SONGS) {
+      expect(song.roles.length, `${song.id}`).toBeGreaterThanOrEqual(5);
+      expect(song.roles.length, `${song.id}`).toBeLessThanOrEqual(7);
+    }
+  });
+
+  it("gives every song a distinct priority order", () => {
+    for (const song of SONGS) {
+      const priorities = song.roles.map((r) => r.priority);
+      expect(new Set(priorities).size, `${song.id} has duplicate priorities`).toBe(
+        priorities.length,
+      );
+    }
+  });
+
+  it("stays inside the tempo range the host slider can express", () => {
+    for (const song of SONGS) {
+      expect(song.bpm, `${song.id}`).toBeGreaterThanOrEqual(60);
+      expect(song.bpm, `${song.id}`).toBeLessThanOrEqual(120);
+    }
+  });
+});
+
 describe("anchors", () => {
   it("are played by everyone in the role, so the downbeat never rests on one person", () => {
     for (const song of SONGS) {
