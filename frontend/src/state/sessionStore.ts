@@ -14,6 +14,7 @@ import {
   getRole,
   getSong,
   quantizeToStep,
+  swapOptions,
   type GroupSize,
   type MoodId,
   type Participant,
@@ -123,6 +124,8 @@ interface SessionState {
   finishSoundCheck: () => void;
   chooseInstrument: (instrumentId?: string) => Promise<void>;
   previewInstrument: (instrumentId: string) => Promise<void>;
+  /** Hand me a different sound, without making me choose from a list. */
+  reshuffleInstrument: () => Promise<void>;
   takeSeat: () => void;
   beginSession: () => void;
   strike: (stroke: Stroke) => void;
@@ -146,6 +149,8 @@ let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 let grooveHintShown = false;
 /** Cycles since this person's part was cued. Not reactive; read on the bar. */
 let cueCycles = 0;
+/** Where "give me a different one" has walked to. */
+let shuffleIndex = 0;
 let releaseAnnounced = false;
 
 export function getEngine(): AudioEngine | null {
@@ -178,6 +183,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
     client = null;
     grooveHintShown = false;
     cueCycles = 0;
+    shuffleIndex = 0;
     releaseAnnounced = false;
     usePlayheadStore.getState().reset();
   }
@@ -624,6 +630,33 @@ export const useSessionStore = create<SessionState>((set, get) => {
             }
           : s.room,
       }));
+    },
+
+    /**
+     * Give me something else.
+     *
+     * Walks the same order the allocator uses — what the room still needs
+     * first — so pressing it repeatedly stays musically sensible instead of
+     * turning into a random draw. Nobody has to know what a ghatam is to use it.
+     */
+    reshuffleInstrument: async () => {
+      const { room, youId, phrase } = get();
+      if (!room) return;
+      const taken = room.participants
+        .filter((p) => p.id !== youId)
+        .map((p) => p.instrumentId)
+        .filter((id): id is string => id !== null);
+
+      const current = phrase?.instrumentId ?? null;
+      const options = swapOptions(taken, room.expectedSize, current).filter(
+        (i) => i.id !== current,
+      );
+      if (options.length === 0) return;
+
+      shuffleIndex = (shuffleIndex + 1) % options.length;
+      const next = options[shuffleIndex];
+      await get().chooseInstrument(next.id);
+      await get().previewInstrument(next.id);
     },
 
     previewInstrument: async (instrumentId) => {

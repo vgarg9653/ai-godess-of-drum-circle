@@ -34,10 +34,20 @@ export function InstrumentScreen() {
   const chooseInstrument = useSessionStore((s) => s.chooseInstrument);
   const previewInstrument = useSessionStore((s) => s.previewInstrument);
   const takeSeat = useSessionStore((s) => s.takeSeat);
+  const reshuffle = useSessionStore((s) => s.reshuffleInstrument);
   const instrument = useYourInstrument();
 
   const [group, setGroup] = useState<Browse | "all">("all");
   const [pressed, setPressed] = useState<string | null>(null);
+  /**
+   * The full catalogue stays shut by default.
+   *
+   * Thirty-one names, most of which mean nothing to most people — "Ghatam",
+   * "Manjira" — is a wall, not a choice. So the room gives you a sound, you can
+   * ask for a different one as many times as you like, and the whole list is
+   * there only if you actually want it.
+   */
+  const [browsing, setBrowsing] = useState(false);
 
   const you = room?.participants.find((p) => p.id === youId);
 
@@ -102,9 +112,33 @@ export function InstrumentScreen() {
         </span>
       </button>
 
-      {/* Groups, named in words the room already uses. */}
+      {/* Not a list. One button that hands you something else. */}
+      <button
+        type="button"
+        onClick={() => void reshuffle()}
+        className="mt-3 w-full rounded-2xl border border-cream/16 py-3.5 text-[14px] text-cream/75 transition active:bg-cream/5"
+      >
+        Give me a different one
+      </button>
+
+      <div className="sticky bottom-0 -mx-5 mt-4 bg-gradient-to-t from-ink via-ink/95 to-transparent px-5 pb-1 pt-4">
+        <Button className="w-full" onClick={takeSeat}>
+          I'm ready
+        </Button>
+      </div>
+
+      {!browsing ? (
+        <button
+          type="button"
+          onClick={() => setBrowsing(true)}
+          className="mx-auto mt-5 pb-2 text-[12.5px] text-cream/35 underline underline-offset-4"
+        >
+          see everything
+        </button>
+      ) : (
+        <>
       <p className="mt-6 pl-1 text-[11px] uppercase tracking-[0.3em] text-cream/45">
-        Or touch anything else
+        Everything in the room
       </p>
       <div className="-mx-5 mt-2.5 flex gap-2 overflow-x-auto px-5 pb-1">
         <Chip active={group === "all"} onClick={() => setGroup("all")} label="All" />
@@ -156,11 +190,8 @@ export function InstrumentScreen() {
         })}
       </div>
 
-      <div className="sticky bottom-0 -mx-5 bg-gradient-to-t from-ink via-ink/95 to-transparent px-5 pb-1 pt-4">
-        <Button className="w-full" onClick={takeSeat}>
-          I'm ready
-        </Button>
-      </div>
+        </>
+      )}
     </Screen>
   );
 }
