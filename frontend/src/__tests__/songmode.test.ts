@@ -17,6 +17,7 @@ import {
 } from "@godc/shared";
 import { MockRoomClient } from "@/net/mockClient";
 import {
+  activeCues,
   advanceCues,
   CUE_HITS_TO_RELEASE,
   CUE_MAX_CYCLES,
@@ -172,13 +173,40 @@ describe("cue release", () => {
     expect(allReleased).toBe(true);
   });
 
-  it("releases hit by hit, not all at once", () => {
+  it("teaches one hit at a time, in the order it sounds", () => {
+    const cues = makeCues([0, 8, 16]);
+    expect(activeCues(cues).map((c) => c.step)).toEqual([0]);
+  });
+
+  it("only credits the hit currently being asked for", () => {
+    // Tapping steadily must not quietly satisfy hits nobody has shown you yet,
+    // or the lesson skips ahead of what was actually learned.
     let cues = makeCues([0, 8, 16]);
     for (let i = 0; i < CUE_HITS_TO_RELEASE; i++) cues = registerTap(cues, 8, STEPS);
-    const { cues: after, allReleased } = advanceCues(cues, 1, 0);
-    expect(after.find((c) => c.step === 8)!.released).toBe(true);
-    expect(after.find((c) => c.step === 0)!.released).toBe(false);
-    expect(allReleased).toBe(false);
+    expect(cues.every((c) => c.found === 0)).toBe(true);
+  });
+
+  it("releases hit by hit, then moves the lesson on", () => {
+    let cues = makeCues([0, 8, 16]);
+    for (let i = 0; i < CUE_HITS_TO_RELEASE; i++) cues = registerTap(cues, 0, STEPS);
+    const first = advanceCues(cues, 1, 0);
+    expect(first.cues.find((c) => c.step === 0)!.released).toBe(true);
+    expect(first.cues.find((c) => c.step === 8)!.released).toBe(false);
+    expect(first.allReleased).toBe(false);
+
+    // The next hit is now the one being taught.
+    expect(activeCues(first.cues).map((c) => c.step)).toEqual([8]);
+
+    let next = first.cues;
+    for (let i = 0; i < CUE_HITS_TO_RELEASE; i++) next = registerTap(next, 8, STEPS);
+    const second = advanceCues(next, 2, 0);
+    expect(second.cues.find((c) => c.step === 8)!.released).toBe(true);
+    expect(activeCues(second.cues).map((c) => c.step)).toEqual([16]);
+  });
+
+  it("has nothing left to teach once everything is released", () => {
+    const cues = advanceCues(makeCues([0, 8]), CUE_MAX_CYCLES, 0).cues;
+    expect(activeCues(cues)).toHaveLength(0);
   });
 
   it("lets go eventually even if the player never finds it", () => {

@@ -74,6 +74,33 @@ This is not an optimisation, it is the design. It means:
 - `AudioEngine.monitorOthers` exists only so one laptop can hear a whole room
   while developing. It must stay off in a real session.
 
+### Nobody in the room speaks music
+
+The hardest constraint in this project, and the easiest to break by accident.
+The people using this are at a wedding, a retreat or a college fest. They have
+never held a djembe and do not know what a cycle, a downbeat, a taal or 112bpm
+is. Every word that reaches them has to work for someone who knows none of it.
+
+In practice:
+
+- **No units, no counts, no theory in the UI.** Not "112 bpm · 8" but "fast".
+  Not "16 beats" but nothing at all. If a number is not actionable, cut it.
+- **Lead with the feeling, not the name.** An instrument tile says "deep and
+  round" first and "Djembe" second. The feeling is information to everybody; the
+  name is information only to people who already knew.
+- **Group things in words the room already uses.** Instruments browse by
+  Thaap / Dhamaka / Jhankaar / Lehar / Sur / Masti — with Devanagari, which most
+  of this audience reads faster than a transliteration. `Family` stays as the
+  musical machinery underneath; `Browse` is what a person sees.
+- **Name songs for the occasion, not the form.** "Baraat", "Garba Night",
+  "Ganpati". The taal is small print. "Teental" means nothing to most of the
+  room; "Sufi Night" means something instantly.
+- **The instruction is a picture, not a sentence.** See the Simon Says note
+  below.
+
+When in doubt, read the string out loud and ask whether an uncle at a wedding
+would know what it meant.
+
 ### The three guarantees
 
 Every design decision serves one of these:
@@ -176,6 +203,34 @@ held, which separates it from the harmonium without moving it.
 instrument previewed with the same four notes, auditioning the tanpura, the pad
 and the Rhodes played an identical tune three times and they all sounded alike —
 the timbres were fine, the tune was the problem.
+
+### The play surface is you in the middle
+
+Everybody used to be an equal dot on one ring. Honest about the music, useless
+as an instruction — you could not tell which one was you or what you were
+supposed to do. Your own instrument is now the largest object on screen, and the
+room orbits it, drifting.
+
+That disc is both the instruction and the tap target, which is why it is big.
+
+### Teaching is Simon Says, one hit at a time
+
+A person learns a sequence by being shown one thing at a time. So although the
+loop plays a player's *whole* part from the first bar — the room never hears a
+partial arrangement — only ever **one hit is being asked for**. Find it, and the
+lesson moves to the next.
+
+`registerTap` deliberately credits only the hit currently being taught. Crediting
+any un-released hit would let someone tapping steadily satisfy hits nobody had
+shown them, and the lesson would run ahead of what they had learned.
+
+Simon Says is the right model for one specific reason: **it never tells you that
+you were bad.** It only ever shows you *when*. That is exactly, and only, the
+feedback this app is allowed to give.
+
+While cued, a tap also uses the stroke the arrangement asks for at that moment,
+so a person who has never held a drum cannot pick the wrong sound. Choosing
+between two sounds starts mattering only once the part is theirs.
 
 ### A tap must make a sound immediately
 

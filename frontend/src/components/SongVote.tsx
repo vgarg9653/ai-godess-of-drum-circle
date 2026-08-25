@@ -1,4 +1,17 @@
-import { SONGS, type Room } from "@godc/shared";
+import { SONGS, type Room, type Song } from "@godc/shared";
+
+/**
+ * Speed in words.
+ *
+ * "112 bpm · 8" is meaningless to everyone this app is for, and worse than
+ * saying nothing — it makes the room feel like equipment.
+ */
+function pace(song: Song): string {
+  if (song.bpm >= 112) return "fast";
+  if (song.bpm >= 95) return "lively";
+  if (song.bpm >= 82) return "steady";
+  return "slow";
+}
 
 /**
  * The room chooses what it is going to play.
@@ -53,10 +66,13 @@ export function SongVote({
                 <span className="block truncate text-[11.5px] text-cream/45">
                   {song.description}
                 </span>
+                <span className="block truncate text-[10px] text-cream/30">
+                  {song.origin}
+                </span>
               </span>
               <span className="flex flex-none items-baseline gap-2">
                 <span className="text-[10px] uppercase tracking-[0.2em] text-cream/35">
-                  {song.bpm} bpm · {song.cycleBeats}
+                  {pace(song)}
                 </span>
                 <span
                   className={`min-w-5 text-right font-display text-lg ${

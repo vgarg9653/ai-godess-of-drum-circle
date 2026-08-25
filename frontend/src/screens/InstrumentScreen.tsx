@@ -1,17 +1,32 @@
 import { useEffect, useState } from "react";
-import { FAMILY_COLOR, FAMILY_HINT, FAMILY_LABEL, iconPath } from "@godc/shared";
+import {
+  BROWSE_GROUPS,
+  FAMILY_COLOR,
+  INSTRUMENTS,
+  iconPath,
+  type Browse,
+} from "@godc/shared";
 import { Button } from "@/components/Button";
+import { InstrumentIcon } from "@/components/InstrumentIcon";
 import { Screen } from "@/components/Screen";
-import { SwapSheet } from "@/components/SwapSheet";
 import { useSessionStore, useYourInstrument } from "@/state/sessionStore";
 
 /**
- * Instrument assignment.
+ * Choosing what you play.
  *
- * The room picks for you first. That is the point: the allocator is keeping the
- * frequency range balanced as people arrive, and a room where everyone chose
- * freely would be eight djembes and no melody. Changing it is one tap away, so
- * the balance is a default rather than a rule.
+ * Everything is on this one screen: what you have been given, the groups, and
+ * every instrument. There is no link to open and no filter to find — a person
+ * standing in a room with a phone in one hand should be able to see the whole
+ * choice at once and touch the one they like the sound of.
+ *
+ * Each tile leads with **what it feels like**, not what it is called. "Deep and
+ * round" tells you something; "Djembe" only helps if you already knew. The name
+ * is still there, underneath, for the people who did.
+ *
+ * The room still picks for you first — the allocator is keeping the frequency
+ * range balanced as people arrive, and a room where everybody chose freely would
+ * be eight djembes and no melody. Changing it is one touch, so the balance is a
+ * default rather than a rule.
  */
 export function InstrumentScreen() {
   const room = useSessionStore((s) => s.room);
@@ -21,12 +36,11 @@ export function InstrumentScreen() {
   const takeSeat = useSessionStore((s) => s.takeSeat);
   const instrument = useYourInstrument();
 
-  const [swapOpen, setSwapOpen] = useState(false);
-  const [pressed, setPressed] = useState(false);
+  const [group, setGroup] = useState<Browse | "all">("all");
+  const [pressed, setPressed] = useState<string | null>(null);
 
   const you = room?.participants.find((p) => p.id === youId);
 
-  // Ask for a balanced assignment as soon as we land here.
   useEffect(() => {
     if (room && you && !you.instrumentId) void chooseInstrument();
   }, [room, you, chooseInstrument]);
@@ -34,91 +48,146 @@ export function InstrumentScreen() {
   if (!room || !instrument) {
     return (
       <Screen className="items-center justify-center">
-        <p className="godc-breathe text-cream/60">Finding your instrument…</p>
+        <p className="godc-breathe text-cream/60">Finding you something to play…</p>
       </Screen>
     );
   }
 
-  const color = FAMILY_COLOR[instrument.family];
+  const mineColor = FAMILY_COLOR[instrument.family];
+  const shown = group === "all" ? INSTRUMENTS : INSTRUMENTS.filter((i) => i.browse === group);
 
-  function audition() {
-    setPressed(true);
-    setTimeout(() => setPressed(false), 220);
-    void previewInstrument(instrument!.id);
+  function touch(id: string) {
+    setPressed(id);
+    setTimeout(() => setPressed(null), 200);
+    void previewInstrument(id);
+    if (id !== instrument!.id) void chooseInstrument(id);
   }
 
   return (
-    <Screen className="items-center justify-center px-7 text-center">
-      <div
-        className="pointer-events-none absolute inset-0 transition-[background] duration-700"
-        style={{
-          background: `radial-gradient(85% 55% at 50% 32%, ${color}26 0%, rgba(0,0,0,0) 62%)`,
-        }}
-      />
-
-      <p className="pl-1.5 text-[11.5px] uppercase tracking-[0.42em] text-gold">
-        Your instrument tonight
+    <Screen scroll className="px-5">
+      {/* What you have. Tapping it plays it. */}
+      <p className="pl-1 text-[11px] uppercase tracking-[0.42em] text-gold">
+        Yours tonight
       </p>
-
       <button
         type="button"
-        onClick={audition}
-        aria-label={`Hear the ${instrument.name}`}
-        className="mt-5 transition-transform duration-200"
-        style={{ transform: pressed ? "scale(0.94)" : "scale(1)" }}
+        onClick={() => touch(instrument.id)}
+        className="mt-2.5 flex w-full items-center gap-4 rounded-2xl border px-4 py-4 text-left transition"
+        style={{
+          borderColor: `${mineColor}80`,
+          background: `linear-gradient(100deg, ${mineColor}1f, transparent)`,
+          transform: pressed === instrument.id ? "scale(0.985)" : "scale(1)",
+        }}
       >
-        <svg width={212} height={212} viewBox="0 0 220 220" style={{ overflow: "visible" }}>
-          <circle cx="110" cy="110" r="100" fill="none" stroke={color} strokeWidth="1.6" opacity="0.85" />
-          <circle
-            cx="110" cy="110" r="84" fill="none" stroke="#f6ecd9" strokeWidth="1"
-            strokeDasharray="2 7" opacity="0.3" className="godc-spin"
-            style={{ transformOrigin: "110px 110px" }}
+        <svg width={54} height={54} viewBox="0 0 48 48" className="flex-none">
+          <path
+            d={iconPath(instrument.id)}
+            fill="none"
+            stroke={mineColor}
+            strokeWidth={2.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ filter: `drop-shadow(0 0 7px ${mineColor})` }}
           />
-          <circle cx="110" cy="110" r="62" fill="none" stroke={color} strokeWidth="1" opacity="0.5" />
-          <g transform="translate(74 74) scale(1.5)" style={{ filter: `drop-shadow(0 0 9px ${color})` }}>
-            <path
-              d={iconPath(instrument.id)} fill="none" stroke={color}
-              strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
-            />
-          </g>
-          <circle cx="110" cy="10" r="3.4" fill={color} />
         </svg>
+        <span className="min-w-0">
+          <span className="block font-display text-[26px] leading-tight">
+            {instrument.feel}
+          </span>
+          <span className="block text-[13px] text-cream/55">
+            {instrument.name}
+            {instrument.dev && <span className="ml-1.5 text-gold/80">{instrument.dev}</span>}
+          </span>
+          <span className="mt-0.5 block text-[11px] text-cream/35">tap to hear it</span>
+        </span>
       </button>
 
-      <div className="mt-4 flex items-baseline gap-3.5">
-        <h1 className="font-display text-[40px] leading-none">{instrument.name}</h1>
-        {instrument.dev && (
-          <span className="font-display text-[26px] text-gold">{instrument.dev}</span>
-        )}
+      {/* Groups, named in words the room already uses. */}
+      <p className="mt-6 pl-1 text-[11px] uppercase tracking-[0.3em] text-cream/45">
+        Or touch anything else
+      </p>
+      <div className="-mx-5 mt-2.5 flex gap-2 overflow-x-auto px-5 pb-1">
+        <Chip active={group === "all"} onClick={() => setGroup("all")} label="All" />
+        {BROWSE_GROUPS.map((g) => (
+          <Chip
+            key={g.id}
+            active={group === g.id}
+            onClick={() => setGroup(g.id)}
+            label={g.label}
+            dev={g.dev}
+          />
+        ))}
+      </div>
+      {group !== "all" && (
+        <p className="mt-2 pl-1 text-[11.5px] text-cream/40">
+          {BROWSE_GROUPS.find((g) => g.id === group)?.hint}
+        </p>
+      )}
+
+      {/* Every instrument, feeling first. */}
+      <div className="mt-3.5 grid grid-cols-2 gap-2 pb-4">
+        {shown.map((option) => {
+          const color = FAMILY_COLOR[option.family];
+          const mine = option.id === instrument.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => touch(option.id)}
+              className={`flex flex-col gap-1.5 rounded-2xl border p-3 text-left transition ${
+                mine ? "border-transparent" : "border-cream/12"
+              }`}
+              style={{
+                borderColor: mine ? color : undefined,
+                background: mine ? `${color}1a` : undefined,
+                transform: pressed === option.id ? "scale(0.97)" : "scale(1)",
+              }}
+            >
+              <InstrumentIcon instrumentId={option.id} color={color} size={30} />
+              <span className="text-[14px] leading-tight text-cream/95">
+                {option.feel}
+              </span>
+              <span className="text-[11px] leading-tight text-cream/45">
+                {option.name}
+                {option.dev && <span className="ml-1 text-gold/70">{option.dev}</span>}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      <p className="mt-3.5 rounded-full border border-cream/30 px-4 py-1.5 text-[12.5px] uppercase tracking-[0.14em] text-cream/75">
-        {instrument.feel}
-      </p>
-      <p className="mt-2 text-[12px] text-cream/45">
-        you are the {FAMILY_LABEL[instrument.family]} — {FAMILY_HINT[instrument.family]}
-      </p>
-
-      <Button className="mt-8" onClick={takeSeat}>
-        Take your seat
-      </Button>
-      <Button variant="quiet" className="mt-4" onClick={() => setSwapOpen(true)}>
-        swap instrument
-      </Button>
-
-      {swapOpen && (
-        <SwapSheet
-          room={room}
-          youId={youId}
-          current={instrument}
-          onPick={(id) => {
-            void previewInstrument(id);
-            void chooseInstrument(id);
-            setSwapOpen(false);
-          }}
-          onClose={() => setSwapOpen(false)}
-        />
-      )}
+      <div className="sticky bottom-0 -mx-5 bg-gradient-to-t from-ink via-ink/95 to-transparent px-5 pb-1 pt-4">
+        <Button className="w-full" onClick={takeSeat}>
+          I'm ready
+        </Button>
+      </div>
     </Screen>
+  );
+}
+
+function Chip({
+  active,
+  onClick,
+  label,
+  dev,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  dev?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex-none rounded-full border px-3.5 py-2 text-[12.5px] transition ${
+        active
+          ? "border-gold/70 bg-gold/15 text-gold"
+          : "border-cream/14 text-cream/60"
+      }`}
+    >
+      {dev && <span className="mr-1.5 font-display text-[14px]">{dev}</span>}
+      {label}
+    </button>
   );
 }

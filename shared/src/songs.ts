@@ -104,9 +104,9 @@ const beat = (b: number): number => b * 4;
 export const SONGS: readonly Song[] = [
   {
     id: "keherwa",
-    name: "Keherwa",
-    origin: "Hindustani · traditional",
-    description: "Eight beats, light on its feet. The one everybody can find.",
+    name: "Filmi Beat",
+    origin: "Keherwa · the beat under half of Hindi film music",
+    description: "You already know this one. Easiest place to start.",
     bpm: 96,
     cycleBeats: 8,
     moodId: "monsoon",
@@ -184,9 +184,9 @@ export const SONGS: readonly Song[] = [
 
   {
     id: "teental",
-    name: "Teental",
-    origin: "Hindustani · traditional",
-    description: "Sixteen beats. Long, unhurried, room to get lost in.",
+    name: "Sufi Night",
+    origin: "Teental · traditional",
+    description: "Slow and wide open. Builds without anyone pushing it.",
     bpm: 78,
     cycleBeats: 16,
     moodId: "night",
@@ -264,9 +264,9 @@ export const SONGS: readonly Song[] = [
 
   {
     id: "rupak",
-    name: "Rupak",
-    origin: "Hindustani · traditional",
-    description: "Seven beats. Lopsided on purpose, and strangely easy.",
+    name: "Off-Beat",
+    origin: "Rupak · traditional",
+    description: "Lopsided on purpose. Sounds hard, feels easy.",
     bpm: 88,
     cycleBeats: 7,
     moodId: "monsoon",
@@ -330,9 +330,9 @@ export const SONGS: readonly Song[] = [
 
   {
     id: "kuku",
-    name: "Kuku",
-    origin: "West African · traditional",
-    description: "A circle dance. Bright, driving, impossible to sit still to.",
+    name: "Circle Dance",
+    origin: "Kuku · West African",
+    description: "Bright and rolling. Everybody moving, nobody sitting.",
     bpm: 112,
     cycleBeats: 8,
     moodId: "dawn",
@@ -408,9 +408,9 @@ export const SONGS: readonly Song[] = [
 
   {
     id: "bhangra",
-    name: "Bhangra",
-    origin: "Punjabi folk · traditional",
-    description: "Wedding energy. Fast, loud, and impossible to stand still to.",
+    name: "Baraat",
+    origin: "Bhangra dhol · Punjabi folk",
+    description: "Wedding procession energy. Loud, fast, no sitting down.",
     bpm: 120,
     cycleBeats: 8,
     moodId: "dawn",
@@ -486,9 +486,9 @@ export const SONGS: readonly Song[] = [
 
   {
     id: "garba",
-    name: "Garba",
-    origin: "Gujarati folk · traditional",
-    description: "A circle dance for hundreds. Starts easy, ends flat out.",
+    name: "Garba Night",
+    origin: "Garba · Gujarati folk",
+    description: "The clap dance. Starts gentle, ends flat out.",
     bpm: 112,
     cycleBeats: 8,
     moodId: "monsoon",
@@ -558,9 +558,9 @@ export const SONGS: readonly Song[] = [
 
   {
     id: "dholtasha",
-    name: "Dhol Tasha",
-    origin: "Maharashtrian processional · traditional",
-    description: "Street procession. Enormous, relentless, built for crowds.",
+    name: "Ganpati",
+    origin: "Dhol tasha · Maharashtrian procession",
+    description: "Street procession. Enormous, relentless, made for crowds.",
     bpm: 118,
     cycleBeats: 8,
     moodId: "night",
@@ -623,9 +623,9 @@ export const SONGS: readonly Song[] = [
 
   {
     id: "kirtan",
-    name: "Kirtan",
-    origin: "Devotional · traditional",
-    description: "Call and answer. Everyone sings back. Builds without trying.",
+    name: "Bhajan Circle",
+    origin: "Kirtan · devotional",
+    description: "One side calls, the other answers back. Anyone can join in.",
     bpm: 84,
     cycleBeats: 8,
     moodId: "monsoon",

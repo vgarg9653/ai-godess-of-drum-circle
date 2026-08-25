@@ -14,6 +14,35 @@
  */
 export type Family = "rhythm" | "bass" | "bed" | "top";
 
+/**
+ * How instruments are grouped *for browsing*.
+ *
+ * Separate from `Family`, which is the musical machinery — what balances a room
+ * and fills a song's roles. This is only for a person choosing, and it is named
+ * in words an Indian crowd already uses rather than in anything a musician would
+ * recognise. Nobody picking up a phone at a wedding is looking for "the
+ * harmonic bed".
+ */
+export type Browse = "thaap" | "dhamaka" | "jhankaar" | "lehar" | "sur" | "masti";
+
+export interface BrowseGroup {
+  id: Browse;
+  /** Devanagari, because it reads faster than a transliteration to most of them. */
+  dev: string;
+  label: string;
+  /** What it sounds like, in the plainest words available. */
+  hint: string;
+}
+
+export const BROWSE_GROUPS: readonly BrowseGroup[] = [
+  { id: "thaap",    dev: "थाप",   label: "Thaap",    hint: "drums you hit with your hands" },
+  { id: "dhamaka",  dev: "धमाका",  label: "Dhamaka",  hint: "the big low boom" },
+  { id: "jhankaar", dev: "झंकार",  label: "Jhankaar", hint: "jingles, bells, bright little sounds" },
+  { id: "lehar",    dev: "लहर",   label: "Lehar",    hint: "long floating notes underneath" },
+  { id: "sur",      dev: "सुर",   label: "Sur",      hint: "the tune on top" },
+  { id: "masti",    dev: "मस्ती",  label: "Masti",    hint: "claps and silly sounds" },
+] as const;
+
 export const FAMILY_COLOR: Record<Family, string> = {
   rhythm: "#ffaa33",
   bass: "#ff5638",
@@ -60,6 +89,8 @@ export interface Instrument {
   pitched: boolean;
   /** Sustained voices ring on past their onset and respond to the swipe. */
   sustains: boolean;
+  /** Which browsing group this sits in. See `Browse`. */
+  browse: Browse;
   /**
    * Octave offset from the room's root.
    *
@@ -78,47 +109,47 @@ export function instrumentIcon(id: string): string {
 
 export const INSTRUMENTS: readonly Instrument[] = [
   /* ---- rhythm --------------------------------------------------- */
-  { id: "tabla",        name: "Tabla",        dev: "तबला",       feel: "sharp accents",     family: "rhythm", origin: "indian",  pitched: false, sustains: false },
-  { id: "dholak",       name: "Dholak",       dev: "ढोलक",       feel: "rolling and low",   family: "rhythm", origin: "indian",  pitched: false, sustains: false },
-  { id: "ghatam",       name: "Ghatam",       dev: "घटम्",        feel: "hollow and dry",    family: "rhythm", origin: "indian",  pitched: false, sustains: false },
-  { id: "kanjira",      name: "Kanjira",      dev: "कंजीरा",      feel: "bright and quick",  family: "rhythm", origin: "indian",  pitched: false, sustains: false },
-  { id: "djembe",       name: "Djembe",                          feel: "deep and round",    family: "rhythm", origin: "global",  pitched: false, sustains: false },
-  { id: "cajon",        name: "Cajón",                           feel: "woody and close",   family: "rhythm", origin: "western", pitched: false, sustains: false },
-  { id: "conga",        name: "Conga",                           feel: "open and warm",     family: "rhythm", origin: "western", pitched: false, sustains: false },
-  { id: "frameDrum",    name: "Frame Drum",                      feel: "soft and wide",     family: "rhythm", origin: "global",  pitched: false, sustains: false },
-  { id: "shaker",       name: "Shaker",                          feel: "steady shimmer",    family: "rhythm", origin: "global",  pitched: false, sustains: false },
-  { id: "claves",       name: "Claves",                          feel: "dry and cutting",   family: "rhythm", origin: "western", pitched: false, sustains: false },
-  { id: "woodblock",    name: "Woodblock",                       feel: "tight and small",   family: "rhythm", origin: "global",  pitched: false, sustains: false },
-  { id: "manjira",      name: "Manjira",      dev: "मंजीरा",      feel: "ringing metal",     family: "rhythm", origin: "indian",  pitched: false, sustains: false },
-  { id: "agogo",        name: "Agogo Bells",                     feel: "clear and high",    family: "rhythm", origin: "global",  pitched: false, sustains: false },
-  { id: "claps",        name: "Hand Claps",                      feel: "hands together",    family: "rhythm", origin: "global",  pitched: false, sustains: false },
-  { id: "beatbox",      name: "Beatbox",                         feel: "mouth and breath",  family: "rhythm", origin: "global",  pitched: false, sustains: false },
+  { id: "tabla",        name: "Tabla",        dev: "तबला",       feel: "sharp accents",     family: "rhythm", origin: "indian",  pitched: false, sustains: false, browse: "thaap" },
+  { id: "dholak",       name: "Dholak",       dev: "ढोलक",       feel: "rolling and low",   family: "rhythm", origin: "indian",  pitched: false, sustains: false, browse: "thaap" },
+  { id: "ghatam",       name: "Ghatam",       dev: "घटम्",        feel: "hollow and dry",    family: "rhythm", origin: "indian",  pitched: false, sustains: false, browse: "thaap" },
+  { id: "kanjira",      name: "Kanjira",      dev: "कंजीरा",      feel: "bright and quick",  family: "rhythm", origin: "indian",  pitched: false, sustains: false, browse: "thaap" },
+  { id: "djembe",       name: "Djembe",                          feel: "deep and round",    family: "rhythm", origin: "global",  pitched: false, sustains: false, browse: "thaap" },
+  { id: "cajon",        name: "Cajón",                           feel: "woody and close",   family: "rhythm", origin: "western", pitched: false, sustains: false, browse: "thaap" },
+  { id: "conga",        name: "Conga",                           feel: "open and warm",     family: "rhythm", origin: "western", pitched: false, sustains: false, browse: "thaap" },
+  { id: "frameDrum",    name: "Frame Drum",                      feel: "soft and wide",     family: "rhythm", origin: "global",  pitched: false, sustains: false, browse: "thaap" },
+  { id: "shaker",       name: "Shaker",                          feel: "steady shimmer",    family: "rhythm", origin: "global",  pitched: false, sustains: false, browse: "jhankaar" },
+  { id: "claves",       name: "Claves",                          feel: "dry and cutting",   family: "rhythm", origin: "western", pitched: false, sustains: false, browse: "jhankaar" },
+  { id: "woodblock",    name: "Woodblock",                       feel: "tight and small",   family: "rhythm", origin: "global",  pitched: false, sustains: false, browse: "jhankaar" },
+  { id: "manjira",      name: "Manjira",      dev: "मंजीरा",      feel: "ringing metal",     family: "rhythm", origin: "indian",  pitched: false, sustains: false, browse: "jhankaar" },
+  { id: "agogo",        name: "Agogo Bells",                     feel: "clear and high",    family: "rhythm", origin: "global",  pitched: false, sustains: false, browse: "jhankaar" },
+  { id: "claps",        name: "Hand Claps",                      feel: "hands together",    family: "rhythm", origin: "global",  pitched: false, sustains: false, browse: "masti" },
+  { id: "beatbox",      name: "Beatbox",                         feel: "mouth and breath",  family: "rhythm", origin: "global",  pitched: false, sustains: false, browse: "masti" },
 
   /* ---- bass ----------------------------------------------------- */
-  { id: "bayan",        name: "Bayan",        dev: "बायाँ",       feel: "deep and slow",     family: "bass",   origin: "indian",  pitched: false, sustains: false },
-  { id: "bassPulse",    name: "Bass",                            feel: "the floor",         family: "bass",   origin: "western", pitched: true,  sustains: true,  octave: -1 },
-  { id: "taiko",        name: "Taiko",                           feel: "huge and rare",     family: "bass",   origin: "global",  pitched: true,  sustains: false, octave: -1 },
+  { id: "bayan",        name: "Bayan",        dev: "बायाँ",       feel: "deep and slow",     family: "bass",   origin: "indian",  pitched: false, sustains: false, browse: "dhamaka" },
+  { id: "bassPulse",    name: "Bass",                            feel: "the floor",         family: "bass",   origin: "western", pitched: true,  sustains: true,  octave: -1, browse: "dhamaka" },
+  { id: "taiko",        name: "Taiko",                           feel: "huge and rare",     family: "bass",   origin: "global",  pitched: true,  sustains: false, octave: -1, browse: "dhamaka" },
 
   /* ---- bed ------------------------------------------------------ *
    * Four bed voices, deliberately laid out so they cannot blur into one
    * another: tanpura an octave down as the floor, harmonium in the middle,
    * Voices an octave up and airy, Rhodes struck rather than held. Same register
    * and same articulation is what makes four different timbres sound alike.  */
-  { id: "tanpura",      name: "Tanpura",      dev: "तानपूरा",     feel: "endless drone",     family: "bed",    origin: "indian",  pitched: true,  sustains: true,  octave: -1 },
-  { id: "harmonium",    name: "Harmonium",    dev: "हारमोनियम",   feel: "warm and reedy",    family: "bed",    origin: "indian",  pitched: true,  sustains: true,  octave: 0 },
-  { id: "warmPad",      name: "Voices",                          feel: "held and human",    family: "bed",    origin: "global",  pitched: true,  sustains: true,  octave: 1 },
-  { id: "rhodes",       name: "Rhodes Keys",                     feel: "bell-like keys",    family: "bed",    origin: "western", pitched: true,  sustains: false, octave: 0 },
+  { id: "tanpura",      name: "Tanpura",      dev: "तानपूरा",     feel: "endless drone",     family: "bed",    origin: "indian",  pitched: true,  sustains: true,  octave: -1, browse: "lehar" },
+  { id: "harmonium",    name: "Harmonium",    dev: "हारमोनियम",   feel: "warm and reedy",    family: "bed",    origin: "indian",  pitched: true,  sustains: true,  octave: 0, browse: "lehar" },
+  { id: "warmPad",      name: "Voices",                          feel: "held and human",    family: "bed",    origin: "global",  pitched: true,  sustains: true,  octave: 1, browse: "lehar" },
+  { id: "rhodes",       name: "Rhodes Keys",                     feel: "bell-like keys",    family: "bed",    origin: "western", pitched: true,  sustains: false, octave: 0, browse: "lehar" },
 
   /* ---- top ------------------------------------------------------ */
-  { id: "sitar",        name: "Sitar",        dev: "सितार",      feel: "buzzing strings",   family: "top",    origin: "indian",  pitched: true,  sustains: false, octave: 0 },
-  { id: "bansuri",      name: "Bansuri",      dev: "बांसुरी",     feel: "breath and air",    family: "top",    origin: "indian",  pitched: true,  sustains: true,  octave: 1 },
-  { id: "shehnai",      name: "Shehnai",      dev: "शहनाई",      feel: "reedy and keen",    family: "top",    origin: "indian",  pitched: true,  sustains: true,  octave: 0 },
-  { id: "santoor",      name: "Santoor",      dev: "संतूर",      feel: "hammered shimmer",  family: "top",    origin: "indian",  pitched: true,  sustains: false, octave: 0 },
-  { id: "kalimba",      name: "Kalimba",                         feel: "small and round",   family: "top",    origin: "global",  pitched: true,  sustains: false, octave: 1 },
-  { id: "marimba",      name: "Marimba",                         feel: "wooden and mellow", family: "top",    origin: "western", pitched: true,  sustains: false, octave: 0 },
-  { id: "glockenspiel", name: "Glockenspiel",                    feel: "glassy and high",   family: "top",    origin: "western", pitched: true,  sustains: false, octave: 1 },
-  { id: "koto",         name: "Koto",                            feel: "plucked and open",  family: "top",    origin: "global",  pitched: true,  sustains: false, octave: 0 },
-  { id: "birds",        name: "Birdsong",                        feel: "flitting and odd",  family: "top",    origin: "global",  pitched: true,  sustains: false, octave: 2 },
+  { id: "sitar",        name: "Sitar",        dev: "सितार",      feel: "buzzing strings",   family: "top",    origin: "indian",  pitched: true,  sustains: false, octave: 0, browse: "sur" },
+  { id: "bansuri",      name: "Bansuri",      dev: "बांसुरी",     feel: "breath and air",    family: "top",    origin: "indian",  pitched: true,  sustains: true,  octave: 1, browse: "sur" },
+  { id: "shehnai",      name: "Shehnai",      dev: "शहनाई",      feel: "reedy and keen",    family: "top",    origin: "indian",  pitched: true,  sustains: true,  octave: 0, browse: "sur" },
+  { id: "santoor",      name: "Santoor",      dev: "संतूर",      feel: "hammered shimmer",  family: "top",    origin: "indian",  pitched: true,  sustains: false, octave: 0, browse: "sur" },
+  { id: "kalimba",      name: "Kalimba",                         feel: "small and round",   family: "top",    origin: "global",  pitched: true,  sustains: false, octave: 1, browse: "sur" },
+  { id: "marimba",      name: "Marimba",                         feel: "wooden and mellow", family: "top",    origin: "western", pitched: true,  sustains: false, octave: 0, browse: "sur" },
+  { id: "glockenspiel", name: "Glockenspiel",                    feel: "glassy and high",   family: "top",    origin: "western", pitched: true,  sustains: false, octave: 1, browse: "jhankaar" },
+  { id: "koto",         name: "Koto",                            feel: "plucked and open",  family: "top",    origin: "global",  pitched: true,  sustains: false, octave: 0, browse: "sur" },
+  { id: "birds",        name: "Birdsong",                        feel: "flitting and odd",  family: "top",    origin: "global",  pitched: true,  sustains: false, octave: 2, browse: "masti" },
 ] as const;
 
 export function getInstrument(id: string): Instrument | undefined {

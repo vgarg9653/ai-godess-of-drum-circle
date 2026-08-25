@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getInstrument, instrumentLabel, type Participant } from "@godc/shared";
-import { CircleCanvas } from "@/components/CircleCanvas";
+import { PlaySurface } from "@/components/PlaySurface";
 import { HostSheet } from "@/components/HostSheet";
 import { InstrumentIcon } from "@/components/InstrumentIcon";
 import { Notice } from "@/components/Notice";
-import { GROOVE_MIN_TAPS, useIsHost, useSessionStore } from "@/state/sessionStore";
+import { GROOVE_MIN_TAPS, getClock, useIsHost, useSessionStore } from "@/state/sessionStore";
 
 interface Label {
   participant: Participant;
@@ -67,23 +67,89 @@ export function PlayScreen() {
   const chrome = trance ? 0 : 1;
   const tapsLeft = Math.max(0, GROOVE_MIN_TAPS - phrase.onsets.length);
 
+  /** Where we are through the cycle, 0..1, read fresh every frame. */
+  function cyclePosition(): number {
+    const clock = getClock();
+    if (!clock || !room) return 0;
+    const seconds = (60 / room.transport.bpm) * room.transport.cycleBeats;
+    const elapsed = (clock.now() - room.transport.startedAt) / 1000;
+    if (elapsed < 0 || seconds <= 0) return 0;
+    return ((elapsed % seconds) + seconds) % seconds / seconds;
+  }
+
+  /**
+   * Which sound a tap makes.
+   *
+   * While being taught a part, every tap uses the stroke the arrangement asks
+   * for at that moment — so a person who has never held a drum cannot pick the
+   * wrong one. Choosing between two sounds only starts to matter once the part
+   * is theirs.
+   */
+  function strokeFor(inCentre: boolean): "outer" | "center" {
+    if (loopState === "cued") {
+      const active = cues.find((c) => !c.released);
+      const onset = active && phrase
+        ? phrase.onsets.find((o) => o.step === active.step)
+        : undefined;
+      if (onset && onset.stroke !== "sweep") return onset.stroke;
+      return "outer";
+    }
+    return inCentre ? "outer" : "center";
+  }
+
+  // Plain language only. Nobody here knows what a cycle or a downbeat is.
+  const instruction =
+    loopState === "cued"
+      ? {
+          title: "Tap when it lights up",
+          detail: "The ring closes in. Hit the circle as it lands — that is all.",
+        }
+      : loopState === "locked"
+        ? {
+            title: "It's yours now",
+            detail: "Keep going, or tap to start something new.",
+          }
+        : tapsLeft > 0
+          ? {
+              title: "Tap out a rhythm",
+              detail: `Anything you like. ${tapsLeft} more tap${tapsLeft === 1 ? "" : "s"} and it starts repeating.`,
+            }
+          : {
+              title: "Nearly there",
+              detail: "It will start repeating in a moment.",
+            };
+
   return (
     <div className="godc-ground godc-grain relative h-full overflow-hidden">
       <Notice />
-      <CircleCanvas
+      <PlaySurface
         participants={room.participants}
-        phrases={room.phrases}
         youId={youId}
         transport={room.transport}
         trance={trance}
         loopState={loopState}
         cues={cues}
+        cyclePosition={cyclePosition}
         onStroke={strike}
+        strokeFor={strokeFor}
         onInspect={(participant, x, y) => {
           wake();
           setLabel({ participant, x, y });
         }}
       />
+
+      {/* The instruction. Large, centred under the disc, and never jargon. */}
+      <div
+        className="pointer-events-none absolute inset-x-0 text-center transition-opacity duration-500"
+        style={{ top: "68%", opacity: trance ? 0 : 1 }}
+      >
+        <p className="font-display text-[22px] leading-tight text-cream/90">
+          {instruction.title}
+        </p>
+        <p className="mx-auto mt-1.5 max-w-[280px] px-6 text-[13px] leading-snug text-cream/45 text-pretty">
+          {instruction.detail}
+        </p>
+      </div>
 
       {/* Masthead. Present, quiet, and the first thing to go in trance. */}
       <div

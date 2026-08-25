@@ -35,7 +35,30 @@ export const CUE_MAX_CYCLES = 8;
 export const CUE_STAGGER_CYCLES = 3;
 
 export function makeCues(steps: readonly number[]): Cue[] {
-  return steps.map((step) => ({ step, found: 0, released: false }));
+  return [...steps].sort((a, b) => a - b).map((step) => ({ step, found: 0, released: false }));
+}
+
+/**
+ * How many hits are being taught at once.
+ *
+ * One. This is the Simon Says lesson: a person learns a sequence by being shown
+ * one thing at a time, not the whole pattern at once. Their loop is playing
+ * their *entire* part from the first bar regardless — the room never hears a
+ * partial arrangement — but only one hit is ever being *asked for*.
+ *
+ * "Tap on this one" is a thing a stranger holding an unfamiliar drum can do.
+ * "Play this four-hit syncopated figure" is not.
+ */
+export const CUE_TEACH_AT_ONCE = 1;
+
+/**
+ * The hit currently being asked for.
+ *
+ * Earliest un-released hit, so the lesson walks through the part in the order it
+ * sounds. Empty once everything has been released.
+ */
+export function activeCues(cues: readonly Cue[]): Cue[] {
+  return cues.filter((c) => !c.released).slice(0, CUE_TEACH_AT_ONCE);
 }
 
 /**
@@ -57,8 +80,12 @@ export function cycleDistance(a: number, b: number, steps: number): number {
  * guessing which would be worse than crediting both.
  */
 export function registerTap(cues: readonly Cue[], step: number, steps: number): Cue[] {
+  // Only the hit being taught can be credited. Otherwise a person tapping
+  // steadily would quietly satisfy hits nobody had shown them yet, and the
+  // lesson would skip ahead of what they had actually learned.
+  const active = new Set(activeCues(cues).map((c) => c.step));
   return cues.map((cue) =>
-    !cue.released && cycleDistance(cue.step, step, steps) <= CUE_WINDOW_STEPS
+    active.has(cue.step) && cycleDistance(cue.step, step, steps) <= CUE_WINDOW_STEPS
       ? { ...cue, found: cue.found + 1 }
       : cue,
   );

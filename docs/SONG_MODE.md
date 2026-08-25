@@ -100,6 +100,24 @@ falls back to any role when the piece has none of that family.
 Five to seven roles, filled in priority order, so a room of five still sounds
 like the piece.
 
+## The lesson is Simon Says
+
+The part loops in full from the first bar, but only **one hit is ever asked
+for**. Find it and the lesson moves on. A four-hit part is learned as four
+one-hit lessons, and the room hears the complete arrangement throughout.
+
+`registerTap` credits only the hit being taught. Otherwise somebody tapping
+steadily would quietly satisfy hits nobody had shown them, and the lesson would
+run ahead of what they had actually learned.
+
+Simon Says is the right model for one reason above all: **it never tells you
+that you were bad.** It shows you *when*, and nothing else — which is precisely
+the only feedback this app permits.
+
+On screen: your instrument is the large disc in the middle, a ring closes in as
+your hit approaches, and the disc lights up as it lands. "Tap when it lights
+up." That is the whole instruction.
+
 ## Cues, and letting go of them
 
 The part **loops from the first bar**. The player is not building it; they are
