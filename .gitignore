@@ -9,3 +9,12 @@ coverage/
 *.log
 .vite/
 *.tsbuildinfo
+
+# The essential kit's audio, deliberately not published.
+#
+# These are real recordings from tidalcycles/Dirt-Samples, which ships NO
+# licence file and states no terms — so redistributing them from a public repo
+# is not something to do by accident. The files stay on the machines that have
+# them and the app works normally; KIT.md below records what they are.
+# See docs/AUDIO_ASSETS.md for how to put this right.
+frontend/public/essential-kit/*.mp3

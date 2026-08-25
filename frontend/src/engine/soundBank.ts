@@ -1,129 +1,135 @@
 /**
  * What each instrument is made of.
  *
- * Three kinds of voice:
+ * Every sound in the room is a real recording, played at the pitch it was
+ * captured. Nothing is synthesised and nothing is pitch-shifted.
  *
- *  - `players`  — unpitched percussion, one recorded one-shot per stroke.
- *                 No pitch-shifting: a transposed drum sounds like a transposed
- *                 drum, and these are all real recordings.
- *  - `sampler`  — pitched voices, a handful of recorded notes that Tone fills
- *                 between by transposing.
- *  - `synth`    — hand-built models, used only where no openly-licensed
- *                 recording exists. See docs/AUDIO_ASSETS.md for which and why.
+ * That is a deliberate narrowing. An earlier version had thirty-one
+ * instruments drawn from soundfonts and hand-built models, and it sounded like
+ * software — which for an app whose whole promise is "your phone becomes an
+ * instrument" is fatal. Eleven real ones is worth more than thirty-one
+ * approximations.
  *
- * Files come from `node tools/fetch-samples.mjs`; sources and licences are in
- * tools/sample-sources.json and frontend/public/samples/CREDITS.md.
+ * The three tuned instruments (bass, guitar, sitar) are all in D, so they agree
+ * with each other and with the room without anything being transposed.
+ *
+ * Files live in `frontend/public/essential-kit/`. See docs/AUDIO_ASSETS.md.
  */
 
 import type { Stroke } from "@godc/shared";
 
-/** Hand-built voices. Each is a real model, not a placeholder beep. */
-export type SynthModel =
-  | "tabla"
-  | "dholak"
-  | "ghatam"
-  | "bayan"
-  | "tanpura"
-  | "beatbox";
+/**
+ * One or more files for a stroke.
+ *
+ * An array is round-robined, which matters for sounds that repeat quickly: two
+ * takes of the same clap alternating reads as two hands, where one file fired
+ * twice reads as a machine gun.
+ */
+export type StrokeFiles = string | readonly string[];
 
-export interface PlayersSpec {
+export interface SoundSpec {
   kind: "players";
-  dir: string;
-  /** Filename stem per stroke, under /samples/<dir>/. */
-  strokes: Record<Stroke, string>;
-  /** Level trim in dB, so families sit together. */
+  strokes: Record<Stroke, StrokeFiles>;
+  /** Level trim in dB, so instruments sit together. */
   trimDb?: number;
 }
 
-export interface SamplerSpec {
-  kind: "sampler";
-  dir: string;
-  /** Note names matching the files on disk. Tone transposes between them. */
-  notes: readonly string[];
-  /** Fade-out applied when a note is released, in seconds. */
-  release?: number;
-  trimDb?: number;
-}
+/** Everything is served from here. Flat, because the kit is small. */
+export const KIT_BASE = "/essential-kit/";
 
-export interface SynthSpec {
-  kind: "synth";
-  model: SynthModel;
-  trimDb?: number;
-}
-
-export type SoundSpec = PlayersSpec | SamplerSpec | SynthSpec;
-
-const strokes = (open: string, muted: string, accent: string): Record<Stroke, string> => ({
-  outer: open,
-  center: muted,
-  sweep: accent,
-});
-
-/** Every file here is one that `fetch-samples.mjs` actually writes. */
 export const SOUND_BANK: Record<string, SoundSpec> = {
-  /* ---- recorded percussion (VCSL, CC0) --------------------------- */
-  cajon:     { kind: "players", dir: "cajon",     strokes: strokes("open", "muted", "accent") },
-  claps:     { kind: "players", dir: "claps",     strokes: strokes("open", "muted", "accent"), trimDb: -2 },
-  claves:    { kind: "players", dir: "claves",    strokes: strokes("open", "muted", "accent"), trimDb: -4 },
-  frameDrum: { kind: "players", dir: "frameDrum", strokes: strokes("open", "muted", "accent") },
-  conga:     { kind: "players", dir: "conga",     strokes: strokes("open", "muted", "accent") },
-  djembe:    { kind: "players", dir: "djembe",    strokes: strokes("open", "muted", "accent") },
-  shaker:    { kind: "players", dir: "shaker",    strokes: strokes("open", "muted", "accent"), trimDb: -3 },
-  kanjira:   { kind: "players", dir: "kanjira",   strokes: strokes("open", "muted", "accent"), trimDb: -2 },
-  woodblock: { kind: "players", dir: "woodblock", strokes: strokes("open", "muted", "accent"), trimDb: -4 },
-  manjira:   { kind: "players", dir: "manjira",   strokes: strokes("open", "muted", "accent"), trimDb: -6 },
-  agogo:     { kind: "players", dir: "agogo",     strokes: strokes("open", "muted", "accent"), trimDb: -5 },
+  /* ---- Beat ---------------------------------------------------- */
+  tabla: {
+    kind: "players",
+    // a = low resonant (dha), b = bright ringing (na).
+    strokes: { outer: "tabla_a", center: "tabla_b", sweep: "tabla_b" },
+  },
+  dholak: {
+    kind: "players",
+    strokes: { outer: "dholak_a", center: "dholak_b", sweep: "dholak_a" },
+  },
+  claps: {
+    kind: "players",
+    // Two real takes, alternated. Two hands, not one sample repeated.
+    strokes: {
+      outer: ["claps_a", "claps_b"],
+      center: ["claps_b", "claps_a"],
+      sweep: ["claps_a", "claps_b"],
+    },
+    trimDb: -1,
+  },
+  stomp: {
+    kind: "players",
+    strokes: { outer: "stomp_a", center: "stomp_a", sweep: "stomp_a" },
+  },
+  shaker: {
+    kind: "players",
+    // a = tight tick, b = loose wash.
+    strokes: { outer: "shaker_a", center: "shaker_b", sweep: "shaker_b" },
+    trimDb: -3,
+  },
+  kartal: {
+    kind: "players",
+    strokes: { outer: "kartal_a", center: "kartal_a", sweep: "kartal_a" },
+    trimDb: -2,
+  },
+  manjira: {
+    kind: "players",
+    strokes: { outer: "manjira_a", center: "manjira_a", sweep: "manjira_a" },
+    trimDb: -4,
+  },
 
-  /* ---- recorded pitched voices (FluidR3_GM, MIT) ----------------- */
-  sitar:        { kind: "sampler", dir: "sitar",        notes: ["C3", "G3", "C4", "G4", "C5"], trimDb: -3 },
-  shehnai:      { kind: "sampler", dir: "shehnai",      notes: ["C4", "G4", "C5", "G5"], release: 0.4, trimDb: -6 },
-  bansuri:      { kind: "sampler", dir: "bansuri",      notes: ["C4", "G4", "C5", "G5"], release: 0.45, trimDb: -6 },
-  santoor:      { kind: "sampler", dir: "santoor",      notes: ["C3", "G3", "C4", "G4", "C5"], trimDb: -4 },
-  harmonium:    { kind: "sampler", dir: "harmonium",    notes: ["C2", "C3", "G3", "C4", "G4"], release: 0.5, trimDb: -7 },
-  kalimba:      { kind: "sampler", dir: "kalimba",      notes: ["C4", "G4", "C5", "G5"], trimDb: -3 },
-  marimba:      { kind: "sampler", dir: "marimba",      notes: ["C3", "C4", "G4", "C5"], trimDb: -4 },
-  glockenspiel: { kind: "sampler", dir: "glockenspiel", notes: ["C5", "G5", "C6"], trimDb: -8 },
-  koto:         { kind: "sampler", dir: "koto",         notes: ["C3", "G3", "C4", "G4"], trimDb: -4 },
-  birds:        { kind: "sampler", dir: "birds",        notes: ["C5", "G5", "C6"], trimDb: -7 },
-  bassPulse:    { kind: "sampler", dir: "bassPulse",    notes: ["C1", "G1", "C2", "G2"], release: 0.3, trimDb: -2 },
-  taiko:        { kind: "sampler", dir: "taiko",        notes: ["C2", "G2", "C3"], trimDb: -4 },
-  warmPad:      { kind: "sampler", dir: "warmPad",      notes: ["C3", "C4", "G4"], release: 1.8, trimDb: -10 },
-  rhodes:       { kind: "sampler", dir: "rhodes",       notes: ["C2", "C3", "C4", "C5"], release: 0.25, trimDb: -6 },
+  /* ---- Deep ---------------------------------------------------- */
+  dhol: {
+    kind: "players",
+    strokes: { outer: "dhol_deep_a", center: "dhol_deep_a", sweep: "dhol_deep_a" },
+  },
+  bass: {
+    kind: "players",
+    // a = D (root), b = A (fifth). Both already in the room's key.
+    strokes: { outer: "bass_a", center: "bass_b", sweep: "bass_a" },
+    trimDb: -2,
+  },
 
-  /* ---- hand-built, no open recording available ------------------- */
-  tabla:   { kind: "synth", model: "tabla" },
-  dholak:  { kind: "synth", model: "dholak" },
-  ghatam:  { kind: "synth", model: "ghatam" },
-  bayan:   { kind: "synth", model: "bayan", trimDb: -1 },
-  tanpura: { kind: "synth", model: "tanpura", trimDb: -8 },
-  beatbox: { kind: "synth", model: "beatbox", trimDb: -3 },
+  /* ---- Background ---------------------------------------------- */
+  guitar: {
+    kind: "players",
+    strokes: { outer: "guitar_a", center: "guitar_a", sweep: "guitar_a" },
+    trimDb: -5,
+  },
+
+  /* ---- Melody -------------------------------------------------- */
+  sitar: {
+    kind: "players",
+    // a = D major, b = D minor. Both agree with the drone; neither is wrong.
+    strokes: { outer: "sitar_a", center: "sitar_b", sweep: "sitar_a" },
+    trimDb: -3,
+  },
 };
 
-const FALLBACK: SynthSpec = { kind: "synth", model: "tabla" };
+const FALLBACK: SoundSpec = {
+  kind: "players",
+  strokes: { outer: "tabla_a", center: "tabla_b", sweep: "tabla_b" },
+};
 
 export function specFor(instrumentId: string): SoundSpec {
   return SOUND_BANK[instrumentId] ?? FALLBACK;
 }
 
-/** True when an instrument plays real recordings rather than a model. */
-export function isSampled(instrumentId: string): boolean {
-  return specFor(instrumentId).kind !== "synth";
+/** Every file a spec references, deduplicated. */
+export function filesFor(spec: SoundSpec): string[] {
+  const out = new Set<string>();
+  for (const files of Object.values(spec.strokes)) {
+    for (const file of typeof files === "string" ? [files] : files) out.add(file);
+  }
+  return [...out];
 }
 
 /** Every audio file the roster needs, as URLs. Drives the preload gate. */
 export function allSampleUrls(): string[] {
-  const urls: string[] = [];
+  const urls = new Set<string>();
   for (const spec of Object.values(SOUND_BANK)) {
-    if (spec.kind === "players") {
-      for (const stem of Object.values(spec.strokes)) {
-        urls.push(`/samples/${spec.dir}/${stem}.mp3`);
-      }
-    } else if (spec.kind === "sampler") {
-      for (const note of spec.notes) {
-        urls.push(`/samples/${spec.dir}/${note}.mp3`);
-      }
-    }
+    for (const file of filesFor(spec)) urls.add(`${KIT_BASE}${file}.mp3`);
   }
-  // Same file can appear twice if two instruments ever share a directory.
-  return [...new Set(urls)];
+  return [...urls];
 }

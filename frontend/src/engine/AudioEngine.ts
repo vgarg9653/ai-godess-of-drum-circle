@@ -308,10 +308,15 @@ export class AudioEngine {
     const stepDur = stepDurationSeconds(this.transport.bpm);
     const steps = onset.durSteps ?? (instrument.sustains ? 4 : 1);
 
-    // A hair of lookahead: scheduling at exactly `now` is a race with the
-    // audio thread and can drop the note.
+    // `Tone.now()` is NOT now. It returns currentTime + context.lookAhead, and
+    // Tone's default lookAhead is 100ms — so scheduling a tap against it put the
+    // sound a tenth of a second after the finger. That is the lag, and on an
+    // instrument it is the difference between playing and operating.
+    //
+    // `immediate()` is the raw context clock. The scheduler still uses `now()`,
+    // where lookahead is exactly what you want; a struck note must not.
     this.localVoice.trigger({
-      time: Tone.now() + 0.008,
+      time: Tone.immediate(),
       stroke: onset.stroke,
       velocity: onset.velocity,
       midi: instrument.pitched
@@ -477,7 +482,7 @@ export class AudioEngine {
     const voice = createVoice(instrumentId, this.master);
     await voice.ready();
     const mood = getMood(moodId);
-    const now = Tone.now() + 0.08;
+    const now = Tone.immediate() + 0.02;
     const figure = previewFigure(instrumentId, instrument.sustains);
 
     let at = now;

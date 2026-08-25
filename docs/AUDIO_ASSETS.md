@@ -1,129 +1,89 @@
 # Audio assets
 
-## Where the sound comes from
+## What the room plays
 
-**25 of the 31 instruments play real recordings.** The remaining six are
-hand-built models, because no openly-licensed recording of them could be found.
+**Eleven instruments, every one a real recording**, played at the pitch it was
+captured. Nothing is synthesised and nothing is pitch-shifted.
 
-Run this once after cloning:
+| Beat | Deep | Background | Melody |
+| --- | --- | --- | --- |
+| Tabla, Dholak, Hand Claps, Stomp, Shaker, Kartal, Manjira | Dhol, Bass | Guitar | Sitar |
 
-```bash
-node tools/fetch-samples.mjs        # needs ffmpeg on PATH
-```
+Files are in `frontend/public/essential-kit/`, flat, mono MP3, silence-trimmed
+and level-matched. About 240KB for the whole kit — which is a quarter of what it
+replaced, and preloads in a blink over venue wifi.
 
-It downloads 88 files, converts them, and writes
-`frontend/public/samples/` plus a generated `CREDITS.md`. Sources and licences
-are declared in [`tools/sample-sources.json`](../tools/sample-sources.json).
+The three tuned instruments — bass, guitar, sitar — are all **in D**, so they
+agree with each other and with the room without anything being transposed.
+`sitar_a` is a D major chord, `sitar_b` D minor; both fit, so neither can be
+wrong.
 
-Total payload: **~2.0 MB**, well inside the budget for sixty phones preloading
-over one venue access point.
+## Why the roster shrank from 31 to 11
 
-## The two sources
+The previous set drew on the VCSL and FluidR3_GM libraries: correctly licensed,
+broad, and — as soon as anyone actually listened to it in a room — obviously
+*software*. Soundfont renderings of a tabla or a bansuri read as MIDI, not as
+instruments. For an app whose entire promise is "your phone becomes an
+instrument", that is fatal.
 
-| Source | Licence | Used for |
-| --- | --- | --- |
-| [VCSL](https://github.com/sgossner/VCSL) — Versilian Community Sample Library | **CC0-1.0** | All unpitched percussion |
-| [FluidR3_GM](https://github.com/gleitz/midi-js-soundfonts) via gleitz/midi-js-soundfonts | **MIT** | All pitched voices |
+**Eleven real ones beat thirty-one approximations.** Everything that could not
+be sourced as a true recording was removed rather than faked, including some
+instruments that had been asked for. Adding more is purely a matter of finding
+more real audio.
 
-Both are public-domain or permissively licensed with no attribution
-requirement and no non-commercial clause. `CREDITS.md` is generated from the
-manifest anyway, so the record cannot drift from what is actually shipped.
+Dropped, and worth restoring if real recordings turn up: ghatam, kanjira,
+djembe, conga, frame drum, claves, woodblock, agogo, bayan, taiko, tanpura,
+harmonium, warm pad / voices, rhodes, bansuri, shehnai, santoor, kalimba,
+marimba, glockenspiel, koto, birdsong, beatbox.
 
-### Why not Freesound or archive.org
+## The licensing problem, stated plainly
 
-Both were checked. Freesound's API requires OAuth for downloads, so it cannot be
-scripted into a reproducible fetch. archive.org has excellent Indian classical
-material, but the recordings are **CC BY-NC** — non-commercial only, which rules
-them out for anything that might ever charge for a retreat.
+The kit comes from [tidalcycles/Dirt-Samples](https://github.com/tidalcycles/Dirt-Samples).
+That repository **ships no LICENSE file and states no terms.** Its contents were
+contributed from many sources over many years. In the absence of a stated
+licence the default is all rights reserved, per sample, by whoever holds it.
 
-## Notably good matches
+Using them privately — a retreat, a workshop, testing — is a very different
+thing from redistributing them. **This repository is public**, so the audio is
+deliberately git-ignored: it stays on the machines that have it, and is not
+published from here. The app runs normally either way.
 
-Some of these are better than "close enough":
+This is not legal advice. If any of this is ever charged for, get someone to
+look at it properly.
 
-- **Harmonium → FluidR3 Reed Organ.** A harmonium *is* a reed organ. Same
-  mechanism, same timbre.
-- **Santoor → FluidR3 Dulcimer.** A santoor is a hammered dulcimer.
-- **Sitar → FluidR3 Sitar.** An actual sitar, buzz and all.
-- **Shehnai → FluidR3 Shanai.** Same instrument, alternate transliteration.
-- **Manjira → VCSL Nepalese Hand Bells.** Small paired hand cymbals; right
-  family, right ring.
-- **Birdsong → FluidR3 Bird Tweet.** Real recorded birds.
-- **Hand Claps → VCSL Claps.** Real hands.
+### Putting it right
 
-## Honest substitutions
+Three options, roughly in order of effort:
 
-These are stand-ins. They sound good, but they are not the named instrument:
+1. **Re-source equivalents under clear terms.** Freesound filtered to CC0 is the
+   obvious place; VCSL (CC0) already covers a lot of percussion honestly. Slot
+   them into the same filenames and nothing else changes.
+2. **Keep the repo private** until that is done.
+3. **Clear the samples** with whoever holds them.
 
-| Instrument | Actually playing | Why it works |
-| --- | --- | --- |
-| Djembe | VCSL Darbuka | Goblet drum, same bass/tone/slap vocabulary |
-| Kanjira | VCSL Tambourine | Frame drum with jingles — the defining feature |
-| Bansuri | FluidR3 Pan Flute | Breathy bamboo edge-blown tone |
+The previous pipeline is still here and still works — `tools/sample-sources.json`
+and `tools/fetch-samples.mjs` fetch and convert the CC0/MIT set from scratch.
+Nothing in the roster points at it now, but it is the shortest path back to
+audio that can be published, and its licence texts remain in `licenses/`.
 
-## The six modelled voices
+## Getting the kit onto another machine
 
-No open recording was findable for these, so they are synthesised in
-[`frontend/src/engine/voices.ts`](../frontend/src/engine/voices.ts):
+Because the audio is not in the repo, a fresh clone has no sound until the files
+are copied into `frontend/public/essential-kit/`. `KIT.md` in that folder lists
+exactly what belongs there and what each file is.
 
-**Tabla, Dholak, Ghatam, Bayan, Tanpura** — the Indian core, and the honest gap
-in this set. Each is a real model rather than a placeholder beep: the tabla sums
-harmonic partials at near-integer ratios (a tabla is famously *harmonic*, unlike
-almost every other drum), the bayan bends pitch the way a heel does, the tanpura
-runs detuned sawtooth pairs to approximate the jawari shimmer. **A tabla player
-will still hear the difference immediately.** Real recordings of these five are
-the single biggest available upgrade to how this app sounds.
+`frontend/src/__tests__/kit.test.ts` fails loudly if any file the app asks for is
+missing — a typo in a filename is silence, and silence is very hard to notice in
+a room already full of other people's drums.
 
-**Beatbox** — the exception. Mouth percussion is a synthesised sound by nature;
-kick, snare and hi-hat modelled directly is not a compromise here.
+## Latency
 
-## Adding real recordings
+`AudioEngine.auditionOnset` schedules a tap with `Tone.immediate()`, **not**
+`Tone.now()`. They are not the same thing: `now()` returns
+`currentTime + context.lookAhead`, and Tone's default lookAhead is 100ms, which
+put every tap a tenth of a second behind the finger. The sequencer still uses
+`now()`, where lookahead is exactly what you want. A struck note must not.
 
-Change one entry in [`soundBank.ts`](../frontend/src/engine/soundBank.ts) from
-`kind: "synth"` to a sampled kind, and add the files.
-
-**Unpitched percussion** — three one-shots, one per stroke:
-
-```ts
-tabla: {
-  kind: "players",
-  dir: "tabla",
-  strokes: { outer: "na", center: "te", sweep: "ge" },
-},
-```
-
-Files go in `frontend/public/samples/tabla/{na,te,ge}.mp3`.
-
-**Pitched voices** — a handful of notes; Tone transposes between them:
-
-```ts
-tanpura: { kind: "sampler", dir: "tanpura", notes: ["C2", "G2", "C3"], release: 2.0 },
-```
-
-To make it reproducible for everyone else, add the source to
-`tools/sample-sources.json` rather than dropping files in by hand — the fetch
-script and `CREDITS.md` both read from it.
-
-## Format and processing
-
-The fetch script does this automatically:
-
-- **Mono, 44.1kHz, MP3** at 96kbps (percussion) / 112kbps (pitched). This comes
-  out of one phone speaker; stereo is wasted bytes.
-- **Leading silence trimmed.** Any lead-in reads as latency and undoes the
-  quantization that makes the app impossible to play wrong.
-- **Trailing silence trimmed** at −62dB, with a 12ms fade so the new end does
-  not click. This alone cut the set from 2.9MB to 2.0MB — VCSL one-shots carry
-  seconds of digital silence after the sound has gone.
-- **Percussion peak-normalised** individually, since they are unrelated
-  recordings that need to sit at a comparable level.
-- **Pitched notes deliberately NOT normalised.** They come from one instrument,
-  and their relative loudness across the register is musical information.
-  Flattening it makes a sampler sound synthetic.
-
-## The preload gate
-
-[`engine/preload.ts`](../frontend/src/engine/preload.ts) decodes the whole
-roster before anyone reaches the instrument screen, so the session survives a
-dead connection and swapping instruments mid-session never touches the network.
-Failures are collected rather than thrown: one missing file costs the room one
-instrument, not the session.
+If latency still feels high on a device, `Tone.getContext().lookAhead` is the
+next dial — but lowering it globally trades scheduling reliability for
+responsiveness, so measure before turning it.

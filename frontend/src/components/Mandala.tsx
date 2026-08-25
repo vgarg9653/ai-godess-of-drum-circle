@@ -17,7 +17,7 @@ const TICKS = [
 ];
 
 /** A few emblems, cycled through the middle of the mark. */
-const CYCLING = ["tabla", "bansuri", "sitar", "harmonium", "kanjira", "djembe"] as const;
+const CYCLING = ["tabla", "sitar", "dhol", "guitar", "manjira", "dholak"] as const;
 
 export function Mandala({
   size = 156,
