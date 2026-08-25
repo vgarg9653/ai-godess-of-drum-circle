@@ -80,11 +80,17 @@ it builds `frontend/dist` from the workspace root.
 
 Two things in that config are load-bearing:
 
-- **The catch-all rewrite.** Every route but `/` is client-side, and a room *is*
-  a link — `/r/ABCD`. Without the rewrite a phone opening a join link gets a 404
-  from the CDN before React ever runs, which breaks the one action the whole app
-  depends on. Vercel checks the filesystem before applying rewrites, so real
-  files like `/samples/tabla/open.mp3` are still served directly.
+- **The rewrite to `index.html`.** Every route but `/` is client-side, and a
+  room *is* a link — `/r/ABCD`. Without a rewrite, a phone opening a join link
+  gets a 404 from the CDN before React ever runs, breaking the one action the
+  whole app depends on.
+
+  It is deliberately **not** a plain `/(.*)` catch-all. Vercel is widely said to
+  check the filesystem before applying rewrites, but that ordering is not stated
+  in their docs, and a rewrite that swallowed `/samples/*.mp3` would silently
+  leave every instrument mute in production. So the pattern matches only
+  dot-free paths outside `assets/` and `samples/` — which is exactly the set of
+  client routes, and provably cannot shadow a real file.
 - **Immutable caching on `/samples/`.** Sixty phones each pulling ~2MB over one
   venue access point is the actual load pattern. The filenames never change, so
   they cache for a year.
