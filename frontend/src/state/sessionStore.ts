@@ -34,6 +34,7 @@ import {
   refit,
   seedFromId,
 } from "@/engine/phrase";
+import { layerStatus, mayLock, PRACTICE_GAIN, type LayerStatus } from "@/engine/layering";
 import {
   advanceCues as stepCues,
   makeCues,
@@ -94,6 +95,8 @@ interface SessionState {
   summary: SessionSummary | null;
   error: string | null;
   preload: PreloadProgress | null;
+  /** Cycles since the session began. Drives the layered start. */
+  cyclesSinceBegin: number;
   /** This device also plays everybody else's parts. Host's-laptop feature. */
   speakerMode: boolean;
   /** Interface dimmed and chrome hidden, once the room has settled. */
@@ -228,21 +231,36 @@ export const useSessionStore = create<SessionState>((set, get) => {
    * like a loop pedal instead of a switch: you play your pattern, and it comes
    * back round with you.
    */
+  /** Where this person stands in the layered start, right now. */
+  function currentLayer(): LayerStatus {
+    const { room, youId, mode, cyclesSinceBegin } = get();
+    if (!room || !youId || mode === "song") return { phase: "open" };
+    if (room.phase !== "playing") return { phase: "open" };
+    return layerStatus(room.participants, youId, cyclesSinceBegin);
+  }
+
   function lockTakeIfReady(): void {
     cueCycles += 1;
+    set((state) => ({ cyclesSinceBegin: state.cyclesSinceBegin + 1 }));
     advanceCues();
 
     const { loopState, phrase } = get();
     if (loopState !== "open" || !phrase) return;
     if (phrase.onsets.length < GROOVE_MIN_TAPS) return;
+    // The layered start holds a groove back until this person's stage — so
+    // entrances land on stage boundaries instead of all at once. Only ever
+    // BEFORE their stage; a passed stage never blocks anyone.
+    if (!mayLock(currentLayer())) return;
 
     set({ loopState: "locked" });
     engine?.setLocalLoopEnabled(true);
     client?.updatePhrase(phrase);
+    // A state you can hear: one soft bell says "it's playing on its own now".
+    engine?.playLockChime();
 
     if (!grooveHintShown) {
       grooveHintShown = true;
-      say("That's your groove. Tap again to lay down a new one.", 7000);
+      say("That's your groove — it plays on its own now. Tap again for a new one.", 7000);
     }
   }
 
@@ -473,6 +491,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
       client.on("session:began", (transport) => {
         engine?.setTransport(transport);
         set((s) => ({
+          cyclesSinceBegin: 0,
           room: s.room ? { ...s.room, phase: "playing", transport } : s.room,
         }));
 
@@ -593,6 +612,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
     summary: null,
     error: null,
     preload: null,
+    cyclesSinceBegin: 0,
     speakerMode: false,
     trance: false,
     notice: null,
@@ -624,7 +644,6 @@ export const useSessionStore = create<SessionState>((set, get) => {
       // chance — so this runs inside the slider drag that called it.
       await engine?.start();
       engine?.setMasterVolume(volume / 100);
-      await engine?.preview("frameDrum", get().room?.transport.moodId ?? "monsoon");
     },
 
     finishSoundCheck: () => {
@@ -770,9 +789,17 @@ export const useSessionStore = create<SessionState>((set, get) => {
       );
 
       pushPhrase(next);
-      // Sound it now, in the hand, rather than whenever the playhead arrives.
+      // Sound it now, in the hand, rather than whenever the playhead arrives —
+      // softly while somebody else is being brought in, at full voice otherwise.
+      const layer = currentLayer();
       const placed = next.onsets[next.onsets.length - 1];
-      if (placed) engine?.auditionOnset(placed);
+      if (placed) {
+        engine?.auditionOnset(
+          placed,
+          true,
+          layer.phase === "waiting" ? PRACTICE_GAIN : 1,
+        );
+      }
       get().wake();
     },
 
@@ -823,6 +850,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
         summary: null,
         error: null,
         preload: null,
+        cyclesSinceBegin: 0,
         speakerMode: false,
         trance: false,
         notice: null,

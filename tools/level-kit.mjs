@@ -32,7 +32,7 @@ const KIT = path.resolve(import.meta.dirname, "../frontend/public/essential-kit"
 const APPLY = process.argv.includes("--apply");
 
 /** Perceived level everything aims for. */
-const TARGET_MEAN_DB = -22;
+const TARGET_MEAN_DB = -18;
 /** Nothing may peak above this. Leaves the limiter downstream some room. */
 const CEILING_DB = -1.5;
 

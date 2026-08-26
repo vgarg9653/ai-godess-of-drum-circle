@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
-import { useSessionStore } from "@/state/sessionStore";
+import { getEngine, useSessionStore } from "@/state/sessionStore";
 
 /**
  * Sound check.
@@ -18,7 +18,9 @@ export function SoundCheckScreen() {
   const soundCheck = useSessionStore((s) => s.soundCheck);
   const finish = useSessionStore((s) => s.finishSoundCheck);
 
-  const [volume, setVolume] = useState(65);
+  // 80 is unity gain on the new curve — the sound check must never make the
+  // room QUIETER than not touching it, which the old default quietly did.
+  const [volume, setVolume] = useState(80);
   const [touched, setTouched] = useState(false);
   const [flash, setFlash] = useState(0);
   const throttle = useRef(0);
@@ -31,7 +33,11 @@ export function SoundCheckScreen() {
     if (now - throttle.current < 140) return;
     throttle.current = now;
     setFlash((n) => n + 1);
+    // A single stroke per movement. The old multi-note preview overlapped
+    // itself under a moving finger and buried the very volume change the
+    // slider was meant to demonstrate.
     void soundCheck(next);
+    getEngine()?.playTestHit();
   }
 
   return (

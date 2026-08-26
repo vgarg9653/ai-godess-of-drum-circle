@@ -5,6 +5,7 @@ import { PlaySurface } from "@/components/PlaySurface";
 import { HostSheet } from "@/components/HostSheet";
 import { InstrumentIcon } from "@/components/InstrumentIcon";
 import { Notice } from "@/components/Notice";
+import { layerStatus } from "@/engine/layering";
 import { GROOVE_MIN_TAPS, getClock, useIsHost, useSessionStore } from "@/state/sessionStore";
 
 interface Label {
@@ -40,6 +41,23 @@ export function PlayScreen() {
   const [label, setLabel] = useState<Label | null>(null);
   const [hostOpen, setHostOpen] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  // The one-time how-to. Real rooms showed people tapping without knowing
+  // what would happen; thirty words up front fixes most of it. Per device.
+  const [showHowTo, setShowHowTo] = useState(() => {
+    try {
+      return localStorage.getItem("godc_howto_seen") !== "1";
+    } catch {
+      return true;
+    }
+  });
+  function dismissHowTo() {
+    setShowHowTo(false);
+    try {
+      localStorage.setItem("godc_howto_seen", "1");
+    } catch {
+      // Private mode: they'll see it again next time. Harmless.
+    }
+  }
 
   // A name tag is an answer to a question, not a permanent fixture.
   useEffect(() => {
@@ -97,6 +115,13 @@ export function PlayScreen() {
     return inCentre ? "outer" : "center";
   }
 
+  const cyclesSinceBegin = useSessionStore((s) => s.cyclesSinceBegin);
+  const mode = useSessionStore((s) => s.mode);
+  const layer =
+    mode === "song" || !youId
+      ? ({ phase: "open" } as const)
+      : layerStatus(room.participants, youId, cyclesSinceBegin);
+
   // Plain language only. Nobody here knows what a cycle or a downbeat is.
   const instruction =
     loopState === "cued"
@@ -109,15 +134,26 @@ export function PlayScreen() {
             title: "Your groove is playing",
             detail: "It repeats on its own now. Want a new one? Just start tapping.",
           }
-        : tapsLeft > 0
+        : layer.phase === "waiting"
           ? {
-              title: "Tap the big circle",
-              detail: "Any rhythm you like — three taps and it becomes your groove.",
+              title: `${layer.stageLabel} starts us off`,
+              detail:
+                "Practise softly — you can hear yourself, the room can't yet. Your moment is coming.",
             }
-          : {
-              title: "Got it — starting your groove",
-              detail: "It joins the room at the top of the next round.",
-            };
+          : layer.phase === "yourTurn"
+            ? {
+                title: "Your turn — join in",
+                detail: "Tap your rhythm on the big circle. Three taps and you're in.",
+              }
+            : tapsLeft > 0
+              ? {
+                  title: "Tap the big circle",
+                  detail: "Any rhythm you like — three taps and it becomes your groove.",
+                }
+              : {
+                  title: "Got it — starting your groove",
+                  detail: "It joins the room at the top of the next round.",
+                };
 
   return (
     <div className="godc-ground godc-grain relative h-full overflow-hidden">
@@ -285,6 +321,39 @@ export function PlayScreen() {
           </>
         )}
       </div>
+
+      {/* First time on the surface: how this works, in thirty words. */}
+      {showHowTo && mode !== "song" && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-void/75 px-7 backdrop-blur-[2px]">
+          <div className="godc-glow-in w-full max-w-[330px] rounded-[22px] border border-gold/30 bg-ink p-6">
+            <p className="text-[11px] uppercase tracking-[0.35em] text-gold">
+              how it works
+            </p>
+            <div className="mt-4 flex flex-col gap-3.5">
+              {[
+                ["Tap the big circle", "any rhythm, there's no wrong one"],
+                ["Three taps and it loops", "you'll hear a small bell — that's your groove playing by itself"],
+                ["Tap again anytime", "to swap it for a new one"],
+              ].map(([head, sub], i) => (
+                <p key={head} className="flex items-baseline gap-3">
+                  <span className="flex-none font-display text-[17px] text-gold">{i + 1}</span>
+                  <span>
+                    <span className="block text-[15px] leading-snug text-cream/95">{head}</span>
+                    <span className="block text-[12px] leading-snug text-cream/50">{sub}</span>
+                  </span>
+                </p>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={dismissHowTo}
+              className="mt-5 w-full rounded-full bg-gradient-to-br from-bass to-rhythm py-3 text-[15px] font-bold text-[#2a1106]"
+            >
+              Let's play
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Who is that? */}
       {label && (

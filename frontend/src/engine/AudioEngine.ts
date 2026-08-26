@@ -109,6 +109,8 @@ export class AudioEngine {
   private limiter: Tone.Limiter | null = null;
 
   private localVoice: Voice | null = null;
+  private testVoice: Voice | null = null;
+  private chimeVoice: Voice | null = null;
   private localInstrumentId: string | null = null;
   private localPhrase: Phrase | null = null;
 
@@ -193,8 +195,10 @@ export class AudioEngine {
     if (this.started) return;
     await Tone.start();
 
-    this.limiter = new Tone.Limiter(-3).toDestination();
-    this.master = new Tone.Gain(0.9).connect(this.limiter);
+    // Phone speakers need a hot signal. The limiter is the safety net: the
+    // master can push into it and transients get shaved, not clipped.
+    this.limiter = new Tone.Limiter(-1).toDestination();
+    this.master = new Tone.Gain(1.0).connect(this.limiter);
 
     const transport = Tone.getTransport();
     this.repeatId = transport.scheduleRepeat((time) => {
@@ -217,7 +221,46 @@ export class AudioEngine {
   setMasterVolume(level: number): void {
     if (!this.master) return;
     const clamped = Math.max(0, Math.min(1, level));
-    this.master.gain.rampTo(Math.pow(clamped, 1.8) * 0.95, 0.05);
+    // The old curve (x^1.8 × 0.95) made the DEFAULT slider position quieter
+    // than never touching the slider at all — sound check turned the room
+    // down. Now: gentle curve, unity around 80%, up to +3.5dB of push at the
+    // top, with the limiter downstream to keep the push honest.
+    this.master.gain.rampTo(Math.pow(clamped, 1.3) * 1.5, 0.05);
+  }
+
+  /**
+   * One real hit, right now. The sound-check slider used to fire a whole
+   * multi-note preview figure per movement — dragging spawned overlapping
+   * figures, which masked exactly the volume difference the slider was
+   * supposed to demonstrate. One dholak stroke per move is legible.
+   */
+  playTestHit(velocity = 0.9): void {
+    if (!this.master) return;
+    if (!this.testVoice) this.testVoice = createVoice("dholak", this.master);
+    this.testVoice.trigger({
+      time: Tone.immediate(),
+      stroke: "outer",
+      velocity,
+      durationSec: 0.5,
+    });
+  }
+
+  /**
+   * A single soft bell — the sound of "your groove is set".
+   *
+   * People tapped and could not tell when their loop had taken over; a state
+   * change you can HEAR is clearer than any caption. One manjira ting, quiet,
+   * once. It announces a state, never a score.
+   */
+  playLockChime(): void {
+    if (!this.master) return;
+    if (!this.chimeVoice) this.chimeVoice = createVoice("manjira", this.master);
+    this.chimeVoice.trigger({
+      time: Tone.immediate(),
+      stroke: "outer",
+      velocity: 0.5,
+      durationSec: 1,
+    });
   }
 
   /* ---------------- transport ---------------- */
@@ -318,6 +361,13 @@ export class AudioEngine {
    */
   auditionOnset(
     onset: Onset,
+    suppressLoopHit = true,
+    /**
+     * Scales the audition only — the loop is untouched. Used while somebody
+     * else is being brought into the circle: you can still practise and hear
+     * yourself, softly, without stamping on their entrance.
+     */
+    gainScale = 1,
     /**
      * Whether the loop should skip its own copy of this hit.
      *
@@ -329,7 +379,6 @@ export class AudioEngine {
      * on top of your part, or slightly beside it, is how a person finds the
      * groove. That is the instrument behaving like an instrument, not a score.
      */
-    suppressLoopHit = true,
   ): void {
     if (!this.started || !this.localVoice || !this.transport) return;
     const instrument = this.localInstrumentId
@@ -351,7 +400,7 @@ export class AudioEngine {
     this.localVoice.trigger({
       time: Tone.immediate(),
       stroke: onset.stroke,
-      velocity: onset.velocity,
+      velocity: onset.velocity * gainScale,
       midi: instrument.pitched
         ? degreeToMidi(mood, onset.degree ?? 0, instrument.octave ?? 0)
         : undefined,
@@ -479,6 +528,10 @@ export class AudioEngine {
 
     this.localVoice?.dispose();
     this.localVoice = null;
+    this.testVoice?.dispose();
+    this.testVoice = null;
+    this.chimeVoice?.dispose();
+    this.chimeVoice = null;
     for (const entry of this.monitorVoices.values()) entry.voice.dispose();
     this.monitorVoices.clear();
     this.phrases.clear();
