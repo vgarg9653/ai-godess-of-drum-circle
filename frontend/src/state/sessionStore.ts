@@ -161,9 +161,17 @@ export function getClock(): SharedClock | null {
   return clock;
 }
 
-/** Point at a real server with VITE_SERVER_URL; otherwise run fully mocked. */
+/**
+ * Point at a real server with VITE_SERVER_URL; otherwise run fully mocked.
+ *
+ * The value "origin" means "the server that served this page" — for builds
+ * where one process carries both the app and the rooms (a tunnel from a
+ * laptop, or a single Railway service). The URL cannot be known at build time
+ * there, but at runtime it is simply where we came from.
+ */
 function makeClient(): RoomClient {
   const url = import.meta.env.VITE_SERVER_URL as string | undefined;
+  if (url === "origin") return new SocketRoomClient(window.location.origin);
   return url ? new SocketRoomClient(url) : new MockRoomClient();
 }
 
