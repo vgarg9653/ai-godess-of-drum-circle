@@ -79,8 +79,8 @@ describe("the phone's own client, on the real wire", () => {
     const tally = new Promise<Record<string, string>>((resolve) => {
       host.on("song:votes", ({ votes }) => resolve(votes));
     });
-    guest.voteSong("garba");
-    expect(Object.values(await tally)).toContain("garba");
+    guest.voteSong("chaiyya");
+    expect(Object.values(await tally)).toContain("chaiyya");
   });
 
   it("keeps the shared clock honest through the client's ping", async () => {

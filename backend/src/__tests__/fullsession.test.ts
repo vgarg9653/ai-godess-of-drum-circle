@@ -59,14 +59,9 @@ describe("one full session, eight people", () => {
     }
     const everyone = [{ socket: host, id: hostId, name: "Asha" }, ...guests];
 
-    /* ---- instruments ---- */
-    const instrumentOf = new Map<string, string>();
-    for (const person of everyone) {
-      instrumentOf.set(person.id, await selectInstrument(person.socket));
-    }
-
-    /* ---- vote, with a genuine spread ---- */
-    const ballots = ["garba", "garba", "baraat", "kirtan", "garba", "baraat"];
+    /* ---- vote, with a genuine spread. No instrument screen in song mode:
+            the arrangement deals them at the settle. ---- */
+    const ballots = ["chaiyya", "chaiyya", "rockYou", "kunFayaKun", "chaiyya", "rockYou"];
     everyone.slice(0, ballots.length).forEach((person, i) => {
       person.socket.emit("song:vote", { songId: ballots[i] });
     });
@@ -79,7 +74,7 @@ describe("one full session, eight people", () => {
     const [settled] = await Promise.all(chosenPromises);
     const transport = await beganPromise;
 
-    expect(settled.songId).toBe("garba"); // the majority got their wish
+    expect(settled.songId).toBe("chaiyya"); // the majority got their wish
     const song = getSong(settled.songId)!;
     expect(transport.bpm).toBe(song.bpm);
 
@@ -88,6 +83,10 @@ describe("one full session, eight people", () => {
       Object.values(settled.parts).filter((p) => p.roleId === roleId).length;
     const cap = maxOnsets(everyone.length, song.cycleBeats);
     const published = new Map<string, Phrase>();
+    // The instruments were dealt with the parts.
+    const instrumentOf = new Map<string, string>(
+      Object.entries(settled.parts).map(([id, p]) => [id, p.instrumentId]),
+    );
     // A listener attached BEFORE anyone publishes, so fan-out is provable.
     const witness = collect(guests[6].socket, "phrase:changed");
 

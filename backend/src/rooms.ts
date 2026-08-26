@@ -19,8 +19,8 @@ import {
   SONGS,
   allocateInstrument,
   assignRole,
-  getInstrument,
   getSong,
+  instrumentForSeat,
   memberIndexFor,
   nextHost,
   type GroupSize,
@@ -200,13 +200,15 @@ export class RoomRegistry {
   }
 
   /**
-   * Fit a role to one person, given everyone else's. Used at Begin for the
-   * whole room in join order, and again for anyone arriving late.
+   * Deal one person their part: role by ratio, instrument locked to the role.
+   * Used at Begin for the whole room in join order, and again for anyone
+   * arriving late. The arrangement dictates the instrument, the way a
+   * bandleader hands out parts — nobody chooses.
    */
   assignRoleFor(
     sroom: ServerRoom,
     participantId: string,
-  ): { roleId: string; rolePart: number } | null {
+  ): { roleId: string; rolePart: number; instrumentId: string } | null {
     const { room } = sroom;
     if (!room.songId) return null;
     const song = getSong(room.songId);
@@ -217,11 +219,11 @@ export class RoomRegistry {
     const taken = room.participants
       .filter((p) => p.id !== participantId && p.roleId !== null)
       .map((p) => p.roleId as string);
-    const family = me.instrumentId ? getInstrument(me.instrumentId)?.family : undefined;
-    const role = assignRole(song, taken, family);
+    const role = assignRole(song, taken);
     me.roleId = role.id;
     me.rolePart = memberIndexFor(taken, role.id);
-    return { roleId: role.id, rolePart: me.rolePart };
+    me.instrumentId = instrumentForSeat(role, me.rolePart);
+    return { roleId: role.id, rolePart: me.rolePart, instrumentId: me.instrumentId };
   }
 
   /**
@@ -230,7 +232,7 @@ export class RoomRegistry {
    */
   settleSong(sroom: ServerRoom): {
     songId: string;
-    parts: Record<string, { roleId: string; rolePart: number }>;
+    parts: Record<string, { roleId: string; rolePart: number; instrumentId: string }>;
   } | null {
     const { room } = sroom;
     if (room.mode !== "song" || room.songId) return null;
@@ -249,7 +251,7 @@ export class RoomRegistry {
       revision: room.transport.revision + 1,
     };
 
-    const parts: Record<string, { roleId: string; rolePart: number }> = {};
+    const parts: Record<string, { roleId: string; rolePart: number; instrumentId: string }> = {};
     for (const participant of room.participants) {
       const part = this.assignRoleFor(sroom, participant.id);
       if (part) parts[participant.id] = part;
@@ -257,7 +259,11 @@ export class RoomRegistry {
     return { songId, parts };
   }
 
-  /** Merge a host's transport change. Never touches startedAt. */
+  /**
+   * Merge a host's transport change. Never touches startedAt — and in a room
+   * playing a song, never the metre either: refitting everyone's dealt part
+   * into a different cycle would dismantle the arrangement.
+   */
   applyTransportUpdate(room: Room, p: UpdateTransportPayload): TransportState {
     const next = { ...room.transport };
     if (p.bpm !== undefined && Number.isFinite(p.bpm)) {
@@ -265,6 +271,7 @@ export class RoomRegistry {
     }
     if (
       p.cycleBeats !== undefined &&
+      room.songId === null &&
       CYCLE_OPTIONS.some((o) => o.beats === p.cycleBeats)
     ) {
       next.cycleBeats = p.cycleBeats;

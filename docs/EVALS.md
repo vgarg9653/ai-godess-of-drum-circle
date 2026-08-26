@@ -3,7 +3,7 @@
 What the product promises, and the test that holds it to the promise. Run
 everything with `npm test` at the root — frontend and backend suites both run.
 
-**190 tests: 146 frontend, 44 backend.** No network access needed; the backend
+**165 tests: 121 frontend, 44 backend.** No network access needed; the backend
 evals spin a real Socket.IO server on an ephemeral port and drive it with real
 socket clients.
 
@@ -18,6 +18,7 @@ socket clients.
 | The circle is never left without a host | `frontend/src/__tests__/hosting.test.ts` (the shared rule); `backend/src/__tests__/hosting.test.ts` (on the wire: leave = immediate, disconnect = after grace, offline candidates skipped) |
 | Disconnect ≠ absent | `backend/.../hosting.test.ts` — a dropped socket is marked present-but-disconnected and keeps its seat for the grace period |
 | One arrangement serves 5 to 60 people | `frontend/src/__tests__/interlock.test.ts` — every song × 8 room sizes: nobody over cap, nobody empty-handed, the room still hears the complete pattern |
+| The song's instrument ratio holds at scale; locked instruments exist in the kit | `interlock.test.ts` — weighted assignment (We Will Rock You stays stomps-and-claps at 60), every `RoleDef.instruments` id present in the roster |
 | Cues teach one hit at a time and always let go | `frontend/src/__tests__/songmode.test.ts` — lesson order, only-the-taught-hit credited, the never-found-it timeout, nothing re-cued |
 | Every sound in the kit is really on disk | `frontend/src/__tests__/kit.test.ts` — a filename typo is silence, and silence is unnoticeable in a full room |
 
@@ -34,8 +35,8 @@ socket clients.
 | Transport host-only, clamped, `startedAt` immovable | `backend/src/__tests__/session.test.ts` |
 | Begin re-origins on a whole second, once | `session.test.ts` |
 | Votes tally live, last-per-person; junk ignored | `backend/src/__tests__/songmode.test.ts` |
-| The settle: majority wins, parts for all, roles fit instruments | `songmode.test.ts` |
-| Late joiner gets a part, privately | `songmode.test.ts` |
+| The settle: majority wins, parts for all, instruments dealt by the song | `songmode.test.ts` |
+| Late joiner dealt their part at the door, instrument included | `songmode.test.ts` |
 
 ## The capstones
 

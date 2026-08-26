@@ -20,6 +20,7 @@ import {
   degreeForOnset,
   distributeRole,
   getSong,
+  instrumentForSeat,
   memberIndexFor,
   nextHost,
   SONGS,
@@ -433,6 +434,7 @@ export class MockRoomClient implements RoomClient {
   voteSong(songId: string): void {
     const room = this.room;
     if (!room || room.phase !== "gathering") return;
+    if (!SONGS.some((s) => s.id === songId)) return;
     room.votes[this.youId] = songId;
     this.emit("song:votes", { votes: { ...room.votes } });
   }
@@ -484,18 +486,23 @@ export class MockRoomClient implements RoomClient {
       if (song) {
         room.songId = songId;
 
-        // Roles are fitted to the instrument each person already chose and
-        // previewed, not the other way round.
+        // The arrangement deals the parts AND the instruments, in join order,
+        // by the song's own ratio. Nobody chooses; nobody can be wrong.
         const takenRoleIds: string[] = [];
-        const parts: Record<string, { roleId: string; rolePart: number }> = {};
+        const parts: Record<
+          string,
+          { roleId: string; rolePart: number; instrumentId: string }
+        > = {};
         for (const participant of room.participants) {
-          const instrument = participant.instrumentId
-            ? getInstrument(participant.instrumentId)
-            : undefined;
-          const role = assignRole(song, takenRoleIds, instrument?.family);
+          const role = assignRole(song, takenRoleIds);
           participant.roleId = role.id;
           participant.rolePart = memberIndexFor(takenRoleIds, role.id);
-          parts[participant.id] = { roleId: role.id, rolePart: participant.rolePart };
+          participant.instrumentId = instrumentForSeat(role, participant.rolePart);
+          parts[participant.id] = {
+            roleId: role.id,
+            rolePart: participant.rolePart,
+            instrumentId: participant.instrumentId,
+          };
           takenRoleIds.push(role.id);
         }
 

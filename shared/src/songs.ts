@@ -1,92 +1,78 @@
 /**
  * Song arrangements.
  *
- * A song here is not a recording — nothing of the original is played back. It is
- * a set of musical decisions (tempo, key, mood, cycle) plus a handful of *roles*,
- * each carrying a rhythmic pattern. The room plays its own instruments in the
- * world of the piece.
+ * A song here is a set of musical decisions — tempo, metre, groove — plus
+ * roles, each carrying a rhythmic pattern and the instrument that plays it.
+ * Nothing of any recording is played back, and the kit is structurally
+ * incapable of reproducing a melody: the bass has two pitches, the sitar two
+ * chords, the guitar one. What a room recognises is the *groove*, and grooves
+ * are exactly what a crowd of hands can hold.
  *
- * Arrangements are static and precomputed. Nothing here is generated at runtime.
+ * In song mode instruments are LOCKED: the arrangement dictates who plays
+ * what, the way a bandleader hands out parts. `RoleDef.instruments` is dealt
+ * round-robin to the people in the role, and there is no swap screen.
  *
- * The first catalogue is deliberately traditional and public-domain. That is
- * partly a licensing decision and partly a musical one: taals and West African
- * bell patterns are *already* interlocking ensemble music, which is exactly the
- * mechanism this mode is built on.
+ * `weight` sets the ratio as the room grows: every role gets one person first
+ * (priority order), then people even out proportionally to weight — so a
+ * stomp-and-clap song stays mostly stomps and claps at sixty people.
+ *
+ * Authoring rules, enforced by eval:
+ *  - 5–7 roles; distinct priorities; ≤ the density cap at 8 people
+ *  - every instrument id must exist in the roster
+ *  - the two highest-priority roles carry anchors
  */
 
 import type { Family } from "./instruments.js";
 import type { MoodId } from "./music.js";
 import type { Stroke } from "./protocol.js";
 
-/**
- * One hit in a role's pattern.
- *
- * `step` is on the same 16th-note grid everything else uses, so a pattern drops
- * straight into a Phrase with no conversion.
- */
 export interface PatternHit {
   step: number;
   stroke: Stroke;
   /** 0..1. Defaults to 0.85 when omitted. */
   velocity?: number;
-  /** Scale degree, for pitched roles. Unpitched roles ignore it. */
+  /** Scale degree, kept for future pitched kits. The current kit ignores it. */
   degree?: number;
   /**
-   * Everyone in this role plays this hit, rather than it being shared out.
-   *
-   * Reserved for the hits that hold the cycle together — usually beat one. A
-   * room where only one person plays the downbeat has a fragile pulse; a room
-   * where everyone does has a spine.
+   * Everyone in this role plays this hit rather than it being shared out.
+   * Reserved for the hits that hold the cycle together.
    */
   anchor?: boolean;
 }
 
-/**
- * A part in the arrangement, played by one *or many* people.
- *
- * Roles rather than individual parts is what lets one arrangement serve a room
- * of five and a room of sixty. See `interlock.ts` for how a role's pattern is
- * shared out among the people playing it.
- */
 export interface RoleDef {
   id: string;
   /** Shown to the player. Plain language, never music theory. */
   name: string;
   /** One line on what this part does in the piece. */
   hint: string;
-  /** Which instrument family fills this role. Allocation stays family-based. */
+  /** Which family this role belongs to, for the closing weave. */
   family: Family;
-  /**
-   * Fill order when there are fewer people than roles.
-   *
-   * A room of five must still sound like the piece, so the roles that carry its
-   * identity come first and the decoration comes last.
-   */
+  /** Fill order when there are fewer people than roles. */
   priority: number;
+  /** Share of the room once every role is filled. Default 1. */
+  weight?: number;
+  /**
+   * The instruments this role hands out, round-robin by position in the role.
+   * Locked — in song mode nobody chooses.
+   */
+  instruments: string[];
   pattern: PatternHit[];
 }
 
 export interface Song {
   id: string;
   name: string;
-  /** Where the piece comes from. Shown quietly under the name. */
+  /** Where the groove comes from. Shown quietly under the name. */
   origin: string;
   /** What it feels like to be in. Never theory. */
   description: string;
   bpm: number;
   cycleBeats: number;
   moodId: MoodId;
-  /**
-   * Root note override, when the piece wants a key its mood does not supply.
-   * Omitted means the mood's own root is used.
-   */
   rootMidi?: number;
   roles: RoleDef[];
 }
-
-/* ------------------------------------------------------------------ *
- * Helpers for authoring patterns
- * ------------------------------------------------------------------ */
 
 const hit = (
   step: number,
@@ -97,602 +83,363 @@ const hit = (
 /** Beat `b` of the cycle, on the 16th-note grid. */
 const beat = (b: number): number => b * 4;
 
-/* ------------------------------------------------------------------ *
- * The catalogue
- * ------------------------------------------------------------------ */
-
 export const SONGS: readonly Song[] = [
   {
-    id: "keherwa",
-    name: "Filmi Beat",
-    origin: "Keherwa · the beat under half of Hindi film music",
-    description: "You already know this one. Easiest place to start.",
+    id: "rockYou",
+    name: "We Will Rock You",
+    origin: "Queen · the stomp-stomp-clap",
+    description: "Two stomps, one clap. The whole world knows this one.",
+    bpm: 81,
+    cycleBeats: 8,
+    moodId: "night",
+    roles: [
+      {
+        id: "stomp",
+        name: "Stomp",
+        hint: "Two stomps, then wait for the clap. Boom, boom.",
+        family: "rhythm",
+        priority: 1,
+        weight: 3,
+        instruments: ["stomp"],
+        pattern: [
+          hit(0, "outer", { anchor: true, velocity: 1 }),
+          hit(2, "outer", { anchor: true, velocity: 0.95 }),
+          hit(beat(4), "outer", { velocity: 1 }),
+          hit(18, "outer", { velocity: 0.95 }),
+        ],
+      },
+      {
+        id: "clap",
+        name: "Clap",
+        hint: "One clap, everyone together, right after the stomps.",
+        family: "rhythm",
+        priority: 2,
+        weight: 3,
+        instruments: ["claps"],
+        // All anchored: the unison clap IS the song.
+        pattern: [
+          hit(beat(1), "outer", { anchor: true, velocity: 1 }),
+          hit(beat(5), "outer", { anchor: true, velocity: 1 }),
+        ],
+      },
+      {
+        id: "deep",
+        name: "The big drum",
+        hint: "Land with the first stomp. Make the floor move.",
+        family: "bass",
+        priority: 3,
+        instruments: ["dhol"],
+        pattern: [
+          hit(0, "outer", { anchor: true, velocity: 1 }),
+          hit(beat(4), "outer", { velocity: 0.9 }),
+        ],
+      },
+      {
+        id: "drive",
+        name: "Keep it rolling",
+        hint: "A dry tick between the stomps.",
+        family: "rhythm",
+        priority: 4,
+        instruments: ["kartal", "tabla"],
+        pattern: [hit(beat(2)), hit(beat(3), "center"), hit(beat(6)), hit(beat(7), "center")],
+      },
+      {
+        id: "chord",
+        name: "The chord",
+        hint: "One big strum at the top. Let it ring the whole way.",
+        family: "bed",
+        priority: 5,
+        instruments: ["guitar"],
+        pattern: [hit(0, "outer", { anchor: true, velocity: 0.8 })],
+      },
+    ],
+  },
+
+  {
+    id: "chaiyya",
+    name: "Chaiyya Chaiyya",
+    origin: "Dil Se · the train-top dholak",
+    description: "The groove that never sits down. Everything pushes forward.",
     bpm: 96,
     cycleBeats: 8,
     moodId: "monsoon",
     roles: [
       {
-        id: "pulse",
-        name: "Keep the beat",
-        hint: "Steady. Everything else leans on you.",
+        id: "dholak",
+        name: "The dholak",
+        hint: "The engine of the song. Steady, rolling, unstoppable.",
         family: "rhythm",
         priority: 1,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 0.95 }),
-          hit(beat(2)), hit(beat(4)), hit(beat(6)),
-        ],
-      },
-      {
-        id: "ground",
-        name: "The low boom",
-        hint: "Low and slow. You are the floor of the room.",
-        family: "bass",
-        priority: 2,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 1 }),
-          hit(beat(3), "center"), hit(beat(4)),
-        ],
-      },
-      {
-        id: "answer",
-        name: "In the gaps",
-        hint: "You land between the others, not with them.",
-        family: "rhythm",
-        priority: 3,
-        pattern: [
-          hit(beat(1), "center"), hit(beat(3)),
-          hit(beat(5), "center"), hit(beat(7)),
-        ],
-      },
-      {
-        id: "colour",
-        name: "Fast and light",
-        hint: "Fast and light, over the top of everything.",
-        family: "rhythm",
-        priority: 5,
-        pattern: [
-          hit(2), hit(6), hit(10), hit(14),
-          hit(18), hit(22), hit(26), hit(30),
-        ],
-      },
-      {
-        id: "bed",
-        name: "Long notes",
-        hint: "Hold a note and let it ring. Do not hurry.",
-        family: "bed",
-        priority: 4,
-        pattern: [
-          hit(beat(0), "sweep", { anchor: true, degree: 0, velocity: 0.7 }),
-          hit(beat(4), "sweep", { degree: 4, velocity: 0.6 }),
-        ],
-      },
-      {
-        id: "voice",
-        name: "The tune",
-        hint: "The tune on top. Sparse is better than busy.",
-        family: "top",
-        priority: 6,
-        pattern: [
-          hit(beat(2), "outer", { degree: 0 }),
-          hit(beat(3), "outer", { degree: 2 }),
-          hit(beat(6), "outer", { degree: 4 }),
-          hit(beat(7), "center", { degree: 2 }),
-        ],
-      },
-    ],
-  },
-
-  {
-    id: "teental",
-    name: "Sufi Night",
-    origin: "Teental · traditional",
-    description: "Slow and wide open. Builds without anyone pushing it.",
-    bpm: 78,
-    cycleBeats: 16,
-    moodId: "night",
-    roles: [
-      {
-        id: "pulse",
-        name: "Keep the beat",
-        hint: "Mark the cycle. Four even strokes, nothing more.",
-        family: "rhythm",
-        priority: 1,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 0.95 }),
-          hit(beat(4)), hit(beat(8), "center"), hit(beat(12)),
-        ],
-      },
-      {
-        id: "ground",
-        name: "The low boom",
-        hint: "Deep and rare. Let the room wait for you.",
-        family: "bass",
-        priority: 2,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 1 }),
-          hit(beat(8), "sweep"),
-        ],
-      },
-      {
-        id: "answer",
-        name: "In the gaps",
-        hint: "Reply to the pulse, always a little after it.",
-        family: "rhythm",
-        priority: 3,
-        pattern: [
-          hit(beat(2)), hit(beat(6), "center"),
-          hit(beat(10)), hit(beat(14), "center"),
-        ],
-      },
-      {
-        id: "colour",
-        name: "Fast and light",
-        hint: "A fine grain over the whole cycle.",
-        family: "rhythm",
-        priority: 5,
-        pattern: [
-          hit(beat(1)), hit(beat(3)), hit(beat(5)), hit(beat(7)),
-          hit(beat(9)), hit(beat(11)), hit(beat(13)), hit(beat(15)),
-        ],
-      },
-      {
-        id: "bed",
-        name: "Long notes",
-        hint: "One long note per half-cycle. Breathe.",
-        family: "bed",
-        priority: 4,
-        pattern: [
-          hit(beat(0), "sweep", { anchor: true, degree: 0, velocity: 0.65 }),
-          hit(beat(8), "sweep", { degree: 3, velocity: 0.6 }),
-        ],
-      },
-      {
-        id: "voice",
-        name: "The tune",
-        hint: "A phrase that arrives late in the cycle and resolves.",
-        family: "top",
-        priority: 6,
-        pattern: [
-          hit(beat(9), "outer", { degree: 4 }),
-          hit(beat(11), "outer", { degree: 3 }),
-          hit(beat(13), "outer", { degree: 1 }),
-          hit(beat(15), "center", { degree: 0 }),
-        ],
-      },
-    ],
-  },
-
-  {
-    id: "rupak",
-    name: "Off-Beat",
-    origin: "Rupak · traditional",
-    description: "Lopsided on purpose. Sounds hard, feels easy.",
-    bpm: 88,
-    cycleBeats: 7,
-    moodId: "monsoon",
-    rootMidi: 47,
-    roles: [
-      {
-        id: "pulse",
-        name: "Keep the beat",
-        hint: "Three, then two, then two. Your hands will find it.",
-        family: "rhythm",
-        priority: 1,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 0.95 }),
-          hit(beat(3)), hit(beat(5)),
-        ],
-      },
-      {
-        id: "ground",
-        name: "The low boom",
-        hint: "Only on the turn of the cycle.",
-        family: "bass",
-        priority: 2,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 1 }),
-          hit(beat(5), "center"),
-        ],
-      },
-      {
-        id: "answer",
-        name: "In the gaps",
-        hint: "Fill the gaps the pulse leaves behind.",
-        family: "rhythm",
-        priority: 3,
-        pattern: [
-          hit(beat(1)), hit(beat(2), "center"),
-          hit(beat(4)), hit(beat(6), "center"),
-        ],
-      },
-      {
-        id: "colour",
-        name: "Fast and light",
-        hint: "Light, quick, and everywhere.",
-        family: "rhythm",
-        priority: 5,
-        pattern: [
-          hit(2), hit(6), hit(10), hit(14), hit(18), hit(22), hit(26),
-        ],
-      },
-      {
-        id: "bed",
-        name: "Long notes",
-        hint: "One note, held across the whole seven.",
-        family: "bed",
-        priority: 4,
-        pattern: [
-          hit(beat(0), "sweep", { anchor: true, degree: 0, velocity: 0.7 }),
-        ],
-      },
-    ],
-  },
-
-  {
-    id: "kuku",
-    name: "Circle Dance",
-    origin: "Kuku · West African",
-    description: "Bright and rolling. Everybody moving, nobody sitting.",
-    bpm: 112,
-    cycleBeats: 8,
-    moodId: "dawn",
-    roles: [
-      {
-        id: "pulse",
-        name: "Keep the beat",
-        hint: "The timeline. Never change, never stop.",
-        family: "rhythm",
-        priority: 1,
+        weight: 2,
+        instruments: ["dholak", "tabla"],
         pattern: [
           hit(0, "outer", { anchor: true, velocity: 0.95 }),
-          hit(6), hit(10), hit(16), hit(22), hit(26),
+          hit(6, "center"), hit(beat(2)), hit(beat(3), "center"),
+          hit(beat(4)), hit(22, "center"), hit(beat(6)), hit(beat(7), "center"),
         ],
       },
       {
-        id: "ground",
-        name: "The low boom",
-        hint: "Two heavy strokes. That is the whole job.",
+        id: "deep",
+        name: "The big drum",
+        hint: "Under it all, twice a cycle.",
         family: "bass",
         priority: 2,
+        instruments: ["dhol"],
         pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 1 }),
-          hit(beat(4), "outer", { velocity: 0.9 }),
+          hit(0, "outer", { anchor: true, velocity: 1 }),
+          hit(beat(4), "center", { velocity: 0.85 }),
         ],
       },
       {
-        id: "answer",
-        name: "In the gaps",
-        hint: "Off the beat, always pulling forward.",
+        id: "clap",
+        name: "Clap",
+        hint: "Everyone claps the same two beats. Like the crowd on the train.",
         family: "rhythm",
         priority: 3,
+        weight: 2,
+        instruments: ["claps"],
         pattern: [
-          hit(beat(1), "center"), hit(beat(2)),
-          hit(beat(5), "center"), hit(beat(6)),
+          hit(beat(2), "outer", { anchor: true, velocity: 0.9 }),
+          hit(beat(6), "outer", { anchor: true, velocity: 0.9 }),
         ],
       },
       {
-        id: "colour",
-        name: "Fast and light",
-        hint: "A dry rattle through the gaps.",
+        id: "shimmer",
+        name: "The shimmer",
+        hint: "A fine rattle over the top. Light hands.",
         family: "rhythm",
-        priority: 5,
-        pattern: [
-          hit(2), hit(5), hit(9), hit(13), hit(18), hit(21), hit(25), hit(29),
-        ],
-      },
-      {
-        id: "bed",
-        name: "Long notes",
-        hint: "Warm and open underneath it all.",
-        family: "bed",
         priority: 4,
-        pattern: [
-          hit(beat(0), "sweep", { anchor: true, degree: 0, velocity: 0.65 }),
-          hit(beat(4), "sweep", { degree: 2, velocity: 0.6 }),
-        ],
+        instruments: ["shaker", "manjira"],
+        pattern: [hit(2), hit(10), hit(14), hit(18), hit(26), hit(30)],
       },
       {
-        id: "voice",
-        name: "The tune",
-        hint: "Short calls, high up, leaving space between them.",
+        id: "strings",
+        name: "The strings",
+        hint: "A bright chord where the voice would breathe.",
         family: "top",
-        priority: 6,
-        pattern: [
-          hit(beat(2), "outer", { degree: 2 }),
-          hit(beat(3), "center", { degree: 1 }),
-          hit(beat(6), "outer", { degree: 4 }),
-        ],
-      },
-    ],
-  },
-
-  {
-    id: "bhangra",
-    name: "Baraat",
-    origin: "Bhangra dhol · Punjabi folk",
-    description: "Wedding procession energy. Loud, fast, no sitting down.",
-    bpm: 120,
-    cycleBeats: 8,
-    moodId: "dawn",
-    roles: [
-      {
-        id: "pulse",
-        name: "Keep the beat",
-        hint: "Hard and even. You are the engine.",
-        family: "rhythm",
-        priority: 1,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 1 }),
-          hit(beat(1)), hit(beat(2)), hit(beat(3)),
-          hit(beat(4)), hit(beat(5)), hit(beat(6)), hit(beat(7)),
-        ],
+        priority: 5,
+        instruments: ["sitar"],
+        pattern: [hit(beat(3), "outer", { velocity: 0.75 }), hit(beat(7), "center", { velocity: 0.7 })],
       },
       {
         id: "ground",
-        name: "The low boom",
-        hint: "Two big hits. Feel them in the floor.",
+        name: "The low note",
+        hint: "Root, then the answer. Twice around.",
         family: "bass",
-        priority: 2,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 1 }),
-          hit(beat(4), "outer", { velocity: 0.95 }),
-        ],
-      },
-      {
-        id: "claps",
-        name: "Clap along",
-        hint: "Everyone claps together. Both hits, every time round.",
-        family: "rhythm",
-        priority: 3,
-        pattern: [
-          // Both anchored on purpose: unison clapping is the whole point, so
-          // this role is the one place we do NOT split the pattern up.
-          hit(beat(2), "outer", { anchor: true, velocity: 0.95 }),
-          hit(beat(6), "outer", { anchor: true, velocity: 0.95 }),
-        ],
-      },
-      {
-        id: "answer",
-        name: "In the gaps",
-        hint: "Land just after the beat, never on it.",
-        family: "rhythm",
-        priority: 4,
-        pattern: [hit(6), hit(14), hit(22), hit(30)],
-      },
-      {
-        id: "bed",
-        name: "Long notes",
-        hint: "Hold one note and let it ride under everything.",
-        family: "bed",
-        priority: 5,
-        pattern: [
-          hit(beat(0), "sweep", { anchor: true, degree: 0, velocity: 0.6 }),
-          hit(beat(4), "sweep", { degree: 4, velocity: 0.55 }),
-        ],
-      },
-      {
-        id: "voice",
-        name: "The tune",
-        hint: "Short and high. Shout, do not sing.",
-        family: "top",
         priority: 6,
-        pattern: [
-          hit(beat(3), "outer", { degree: 4 }),
-          hit(beat(7), "center", { degree: 2 }),
-        ],
+        instruments: ["bass"],
+        pattern: [hit(0, "outer", { anchor: true, velocity: 0.85 }), hit(beat(4), "center", { velocity: 0.8 })],
       },
     ],
   },
 
   {
-    id: "garba",
-    name: "Garba Night",
-    origin: "Garba · Gujarati folk",
-    description: "The clap dance. Starts gentle, ends flat out.",
-    bpm: 112,
-    cycleBeats: 8,
-    moodId: "monsoon",
-    roles: [
-      {
-        id: "pulse",
-        name: "Keep the beat",
-        hint: "Steady and light. The dancers follow you.",
-        family: "rhythm",
-        priority: 1,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 0.95 }),
-          hit(beat(2)), hit(beat(4)), hit(beat(6)),
-        ],
-      },
-      {
-        id: "claps",
-        name: "Clap along",
-        hint: "The taali. Everyone, together, on the same two beats.",
-        family: "rhythm",
-        priority: 2,
-        pattern: [
-          hit(beat(1), "outer", { anchor: true, velocity: 0.9 }),
-          hit(beat(5), "outer", { anchor: true, velocity: 0.9 }),
-        ],
-      },
-      {
-        id: "ground",
-        name: "The low boom",
-        hint: "Under the turn of the circle.",
-        family: "bass",
-        priority: 3,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 1 }),
-          hit(beat(3), "center"), hit(beat(6)),
-        ],
-      },
-      {
-        id: "answer",
-        name: "In the gaps",
-        hint: "Answer the claps, a beat behind them.",
-        family: "rhythm",
-        priority: 4,
-        pattern: [hit(beat(2)), hit(beat(3)), hit(beat(6)), hit(beat(7))],
-      },
-      {
-        id: "colour",
-        name: "Fast and light",
-        hint: "A quick rattle through everything.",
-        family: "rhythm",
-        priority: 6,
-        pattern: [hit(2), hit(6), hit(10), hit(14), hit(18), hit(22), hit(26), hit(30)],
-      },
-      {
-        id: "bed",
-        name: "Long notes",
-        hint: "Warm and open. Do not hurry.",
-        family: "bed",
-        priority: 5,
-        pattern: [
-          hit(beat(0), "sweep", { anchor: true, degree: 0, velocity: 0.6 }),
-          hit(beat(4), "sweep", { degree: 2, velocity: 0.55 }),
-        ],
-      },
-    ],
-  },
-
-  {
-    id: "dholtasha",
-    name: "Ganpati",
-    origin: "Dhol tasha · Maharashtrian procession",
-    description: "Street procession. Enormous, relentless, made for crowds.",
-    bpm: 118,
+    id: "joBhiMain",
+    name: "Jo Bhi Main",
+    origin: "Rockstar · slow-burn strum",
+    description: "Starts quiet, means it. Room to breathe between every hit.",
+    bpm: 76,
     cycleBeats: 8,
     moodId: "night",
     roles: [
       {
-        id: "pulse",
-        name: "Keep the beat",
-        hint: "The tasha. Fast, tight, right on top of the beat.",
-        family: "rhythm",
+        id: "strum",
+        name: "The guitar",
+        hint: "The heartbeat strum. Everything else leans on you.",
+        family: "bed",
         priority: 1,
-        // Eight strokes, grouped 3+3+2 over each half-cycle. A real tasha roll
-        // is busier, but twelve hits is denser than one person is permitted to
-        // play: the density cap allows eleven at five people and eight at
-        // eight, and an arrangement does not get to overrule that.
+        weight: 2,
+        instruments: ["guitar"],
         pattern: [
-          hit(0, "outer", { anchor: true, velocity: 1 }),
-          hit(3), hit(6), hit(10),
-          hit(16), hit(19), hit(22), hit(26),
+          hit(0, "outer", { anchor: true, velocity: 0.85 }),
+          hit(beat(2), "outer", { velocity: 0.7 }),
+          hit(beat(4), "outer", { velocity: 0.8 }),
+          hit(beat(6), "outer", { velocity: 0.7 }),
+        ],
+      },
+      {
+        id: "pulse",
+        name: "The soft drum",
+        hint: "Gentle. Fingers, not palms.",
+        family: "rhythm",
+        priority: 2,
+        instruments: ["tabla", "dholak"],
+        pattern: [
+          hit(0, "center", { anchor: true, velocity: 0.75 }),
+          hit(beat(2), "center", { velocity: 0.65 }),
+          hit(beat(4), "outer", { velocity: 0.8 }),
+          hit(beat(6), "center", { velocity: 0.65 }),
         ],
       },
       {
         id: "ground",
-        name: "The low boom",
-        hint: "The dhol. Huge and slow against all that speed.",
+        name: "The low note",
+        hint: "Once a cycle, then let it fade all the way.",
         family: "bass",
-        priority: 2,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 1 }),
-          hit(beat(2), "center"), hit(beat(4)), hit(beat(6), "center"),
-        ],
-      },
-      {
-        id: "answer",
-        name: "In the gaps",
-        hint: "Off the beat, pushing the procession forward.",
-        family: "rhythm",
         priority: 3,
-        pattern: [hit(2), hit(10), hit(18), hit(26)],
+        instruments: ["bass"],
+        pattern: [hit(0, "outer", { anchor: true, velocity: 0.85 })],
       },
       {
-        id: "claps",
-        name: "Clap along",
-        hint: "One clap a cycle, all together. Save it for the turn.",
-        family: "rhythm",
+        id: "minor",
+        name: "The dark chord",
+        hint: "The sad colour of the song. Halfway round, every time.",
+        family: "top",
         priority: 4,
-        pattern: [hit(beat(4), "outer", { anchor: true, velocity: 1 })],
+        instruments: ["sitar"],
+        // Centre stroke = the D minor recording. The song's whole mood.
+        pattern: [hit(beat(4), "center", { anchor: true, velocity: 0.75 })],
       },
       {
-        id: "bed",
-        name: "Long notes",
-        hint: "A low drone holding the whole street together.",
-        family: "bed",
+        id: "ring",
+        name: "The small bell",
+        hint: "One ring, high and far away.",
+        family: "rhythm",
         priority: 5,
-        pattern: [
-          hit(beat(0), "sweep", { anchor: true, degree: 0, velocity: 0.6 }),
-        ],
+        instruments: ["manjira"],
+        pattern: [hit(beat(6), "outer", { velocity: 0.6 })],
       },
     ],
   },
 
   {
-    id: "kirtan",
-    name: "Bhajan Circle",
-    origin: "Kirtan · devotional",
-    description: "One side calls, the other answers back. Anyone can join in.",
-    bpm: 84,
+    id: "standByMe",
+    name: "Stand By Me",
+    origin: "Ben E. King · that bassline feel",
+    description: "Root and answer, walking forever. Warm and unhurried.",
+    bpm: 118,
     cycleBeats: 8,
+    moodId: "dawn",
+    roles: [
+      {
+        id: "bassline",
+        name: "The bass",
+        hint: "Low note, then the answer. The song lives in your hands.",
+        family: "bass",
+        priority: 1,
+        weight: 2,
+        instruments: ["bass"],
+        pattern: [
+          hit(0, "outer", { anchor: true, velocity: 0.9 }),
+          hit(6, "outer", { velocity: 0.75 }),
+          hit(beat(3), "center", { velocity: 0.85 }),
+          hit(beat(4), "outer", { velocity: 0.9 }),
+          hit(22, "outer", { velocity: 0.75 }),
+          hit(beat(7), "center", { velocity: 0.85 }),
+        ],
+      },
+      {
+        id: "click",
+        name: "The click",
+        hint: "Two dry clicks a cycle, exactly where you expect them.",
+        family: "rhythm",
+        priority: 2,
+        instruments: ["kartal", "claps"],
+        pattern: [
+          hit(beat(2), "outer", { anchor: true, velocity: 0.85 }),
+          hit(beat(6), "outer", { anchor: true, velocity: 0.85 }),
+        ],
+      },
+      {
+        id: "brush",
+        name: "The brush",
+        hint: "A soft steady swish underneath.",
+        family: "rhythm",
+        priority: 3,
+        weight: 2,
+        instruments: ["shaker"],
+        pattern: [hit(0, "center"), hit(beat(1)), hit(beat(2), "center"), hit(beat(3)), hit(beat(4), "center"), hit(beat(5)), hit(beat(6), "center"), hit(beat(7))],
+      },
+      {
+        id: "pulse",
+        name: "The soft drum",
+        hint: "Small and round, on the backbeat.",
+        family: "rhythm",
+        priority: 4,
+        instruments: ["tabla", "dholak"],
+        pattern: [hit(beat(1), "center"), hit(beat(3)), hit(beat(5), "center"), hit(beat(7))],
+      },
+      {
+        id: "chord",
+        name: "The chord",
+        hint: "Bright strum at the turn of the cycle.",
+        family: "bed",
+        priority: 5,
+        instruments: ["guitar"],
+        pattern: [hit(0, "outer", { anchor: true, velocity: 0.7 }), hit(beat(4), "outer", { velocity: 0.65 })],
+      },
+    ],
+  },
+
+  {
+    id: "kunFayaKun",
+    name: "Kun Faya Kun",
+    origin: "Rockstar · the qawwali sway",
+    description: "Six beats, swaying. It carries you rather than you carrying it.",
+    bpm: 76,
+    cycleBeats: 6,
     moodId: "monsoon",
     roles: [
       {
-        id: "pulse",
-        name: "Keep the beat",
-        hint: "Gentle and even. Nothing to prove.",
+        id: "sway",
+        name: "The sway",
+        hint: "Rock with it — strong, soft-soft, strong.",
         family: "rhythm",
         priority: 1,
+        weight: 2,
+        instruments: ["dholak", "tabla"],
         pattern: [
-          hit(beat(0), "outer", { anchor: true, velocity: 0.85 }),
-          hit(beat(2)), hit(beat(4)), hit(beat(6)),
+          hit(0, "outer", { anchor: true, velocity: 0.9 }),
+          hit(6, "center"), hit(10, "center"),
+          hit(beat(3), "outer", { velocity: 0.85 }),
+          hit(18, "center"), hit(22, "center"),
         ],
+      },
+      {
+        id: "ring",
+        name: "The bell",
+        hint: "One ring at the top of every sway. The qawwali's heartbeat.",
+        family: "rhythm",
+        priority: 2,
+        instruments: ["manjira"],
+        pattern: [hit(0, "outer", { anchor: true, velocity: 0.75 }), hit(beat(3), "outer", { velocity: 0.6 })],
+      },
+      {
+        id: "drone",
+        name: "The drone",
+        hint: "The held chord underneath everything. Never hurry it.",
+        family: "top",
+        priority: 3,
+        instruments: ["sitar"],
+        pattern: [hit(0, "outer", { anchor: true, velocity: 0.7 })],
       },
       {
         id: "ground",
-        name: "The low boom",
-        hint: "Once a cycle, low and warm.",
+        name: "The low note",
+        hint: "Once around, deep and warm.",
         family: "bass",
-        priority: 2,
-        pattern: [hit(beat(0), "outer", { anchor: true, velocity: 0.9 })],
-      },
-      {
-        id: "call",
-        name: "The call",
-        hint: "You go first. The room answers you.",
-        family: "top",
-        priority: 3,
-        pattern: [
-          hit(beat(0), "outer", { anchor: true, degree: 0 }),
-          hit(beat(1), "outer", { degree: 2 }),
-          hit(beat(2), "outer", { degree: 4 }),
-        ],
-      },
-      {
-        id: "answer",
-        name: "The answer",
-        hint: "Wait for the call, then reply. Never at the same time.",
-        family: "top",
         priority: 4,
-        pattern: [
-          hit(beat(4), "outer", { anchor: true, degree: 4 }),
-          hit(beat(5), "outer", { degree: 2 }),
-          hit(beat(6), "center", { degree: 0 }),
-        ],
+        instruments: ["bass"],
+        pattern: [hit(0, "outer", { anchor: true, velocity: 0.8 })],
       },
       {
-        id: "claps",
-        name: "Clap along",
-        hint: "Two claps a cycle, everyone at once.",
+        id: "clap",
+        name: "Clap",
+        hint: "The qawwali clap — everyone, on the same beat.",
         family: "rhythm",
         priority: 5,
-        pattern: [
-          hit(beat(3), "outer", { anchor: true, velocity: 0.85 }),
-          hit(beat(7), "outer", { anchor: true, velocity: 0.85 }),
-        ],
+        weight: 2,
+        instruments: ["claps"],
+        pattern: [hit(beat(3), "outer", { anchor: true, velocity: 0.85 })],
       },
       {
-        id: "bed",
-        name: "Long notes",
-        hint: "One held note, all the way through.",
+        id: "strum",
+        name: "The guitar",
+        hint: "A gentle strum on the turn.",
         family: "bed",
         priority: 6,
-        pattern: [
-          hit(beat(0), "sweep", { anchor: true, degree: 0, velocity: 0.55 }),
-        ],
+        instruments: ["guitar"],
+        pattern: [hit(beat(3), "outer", { velocity: 0.6 })],
       },
     ],
   },

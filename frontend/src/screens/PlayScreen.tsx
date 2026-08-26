@@ -102,21 +102,21 @@ export function PlayScreen() {
     loopState === "cued"
       ? {
           title: "Tap when it lights up",
-          detail: "The ring closes in. Hit the circle as it lands — that is all.",
+          detail: "The ring closes in on your circle. Hit it as it lands — that's all.",
         }
       : loopState === "locked"
         ? {
-            title: "It's yours now",
-            detail: "Keep going, or tap to start something new.",
+            title: "Your groove is playing",
+            detail: "It repeats on its own now. Want a new one? Just start tapping.",
           }
         : tapsLeft > 0
           ? {
-              title: "Tap out a rhythm",
-              detail: `Anything you like. ${tapsLeft} more tap${tapsLeft === 1 ? "" : "s"} and it starts repeating.`,
+              title: "Tap the big circle",
+              detail: "Any rhythm you like — three taps and it becomes your groove.",
             }
           : {
-              title: "Nearly there",
-              detail: "It will start repeating in a moment.",
+              title: "Got it — starting your groove",
+              detail: "It joins the room at the top of the next round.",
             };
 
   return (
@@ -138,17 +138,52 @@ export function PlayScreen() {
         }}
       />
 
-      {/* The instruction. Large, centred under the disc, and never jargon. */}
+      {/* The instruction. The biggest words on screen, because "what do I do"
+          was the question people actually asked. Never jargon. */}
       <div
         className="pointer-events-none absolute inset-x-0 text-center transition-opacity duration-500"
-        style={{ top: "68%", opacity: trance ? 0 : 1 }}
+        style={{ top: "67%", opacity: trance ? 0 : 1 }}
       >
-        <p className="font-display text-[22px] leading-tight text-cream/90">
+        <p
+          className="font-display text-[26px] leading-tight transition-colors duration-500"
+          style={{
+            color:
+              loopState === "locked" ? "var(--color-top)" : "rgba(246,236,217,0.92)",
+          }}
+        >
           {instruction.title}
         </p>
-        <p className="mx-auto mt-1.5 max-w-[280px] px-6 text-[13px] leading-snug text-cream/45 text-pretty">
+        <p className="mx-auto mt-1.5 max-w-[300px] px-6 text-[13.5px] leading-snug text-cream/50 text-pretty">
           {instruction.detail}
         </p>
+
+        {/* While laying down: the three taps, as three lamps filling. The same
+            fact as "2 more taps", but readable mid-motion without reading. */}
+        {loopState === "open" && (
+          <div className="mt-3 flex items-center justify-center gap-2.5">
+            {Array.from({ length: GROOVE_MIN_TAPS }, (_, i) => {
+              const lit = i < phrase.onsets.length;
+              return (
+                <span
+                  key={i}
+                  className="h-2.5 w-2.5 rounded-full transition-all duration-300"
+                  style={{
+                    background: lit ? "var(--color-gold)" : "rgba(246,236,217,0.15)",
+                    boxShadow: lit ? "0 0 10px var(--color-gold)" : "none",
+                    transform: lit ? "scale(1.15)" : "scale(1)",
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* At the moment it locks, say so where the eyes already are. */}
+        {loopState === "locked" && (
+          <div className="mx-auto mt-3 h-1 w-24 overflow-hidden rounded-full bg-cream/10">
+            <div className="godc-breathe h-full w-full rounded-full bg-top/70" />
+          </div>
+        )}
       </div>
 
       {/* Masthead. Present, quiet, and the first thing to go in trance. */}
@@ -295,6 +330,7 @@ export function PlayScreen() {
         >
           {hostOpen && (
             <HostSheet
+              room={room}
               transport={room.transport}
               onChange={(p) => {
                 wake();

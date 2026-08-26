@@ -268,6 +268,20 @@ The bare `Tone.Draw` singleton is deprecated in Tone 15 and bound to the context
 that existed at module load. Use `Tone.getDraw()`, which resolves against the
 live context.
 
+### In song mode, the arrangement deals — nobody chooses
+
+Song rooms have no instrument screen. `RoleDef.instruments` is dealt
+round-robin by seat, `weight` keeps the song's instrument ratio as the room
+grows, and a late joiner is dealt their part in the join. The choosing screen
+is jam-only.
+
+### Mood is gone from the UI, deliberately
+
+The kit is real recordings played at the pitch they were captured, so the mood
+selector changed nothing anyone could hear. Dead controls teach people not to
+trust the live ones. The field stays in the protocol for a future pitched kit;
+the UI does not show it.
+
 ### Three strokes, every instrument
 
 `outer` / `center` / `sweep` is the entire input vocabulary. A drum reads them as

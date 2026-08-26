@@ -262,6 +262,16 @@ standing in a room, not for a log file.
 
 ---
 
+## What changed in v4
+
+Locked instruments. `song:chosen` parts now carry `instrumentId` — the
+arrangement deals the instrument with the part, and `instrument:select` in a
+settled song room returns what you hold rather than reallocating. A late
+joiner is dealt their part in the join itself (the `song:chosen` arrives right
+behind the ack — listen before joining). `transport:update` ignores
+`cycleBeats` once a song is settled: refitting dealt parts into a different
+metre would dismantle the arrangement.
+
 ## What changed in v3
 
 Song mode. Full rationale in [SONG_MODE.md](SONG_MODE.md).

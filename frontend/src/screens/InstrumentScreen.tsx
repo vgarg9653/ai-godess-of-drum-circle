@@ -102,12 +102,10 @@ export function InstrumentScreen() {
         </svg>
         <span className="min-w-0">
           <span className="block font-display text-[26px] leading-tight">
-            {instrument.feel}
-          </span>
-          <span className="block text-[13px] text-cream/55">
             {instrument.name}
-            {instrument.dev && <span className="ml-1.5 text-gold/80">{instrument.dev}</span>}
+            {instrument.dev && <span className="ml-2 text-[20px] text-gold/80">{instrument.dev}</span>}
           </span>
+          <span className="block text-[13px] text-cream/55">{instrument.feel}</span>
           <span className="mt-0.5 block text-[11px] text-cream/35">tap to hear it</span>
         </span>
       </button>
@@ -178,13 +176,11 @@ export function InstrumentScreen() {
               }}
             >
               <InstrumentIcon instrumentId={option.id} color={color} size={30} />
-              <span className="text-[14px] leading-tight text-cream/95">
-                {option.feel}
-              </span>
-              <span className="text-[11px] leading-tight text-cream/45">
+              <span className="font-display text-[16px] leading-tight text-cream/95">
                 {option.name}
-                {option.dev && <span className="ml-1 text-gold/70">{option.dev}</span>}
+                {option.dev && <span className="ml-1.5 text-[13px] text-gold/70">{option.dev}</span>}
               </span>
+              <span className="text-[11.5px] leading-tight text-cream/50">{option.feel}</span>
             </button>
           );
         })}

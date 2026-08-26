@@ -11,6 +11,8 @@ import { describe, expect, it } from "vitest";
 import {
   assignRole,
   distributeRole,
+  INSTRUMENTS,
+  instrumentForSeat,
   maxOnsets,
   memberIndexFor,
   SONGS,
@@ -133,6 +135,19 @@ describe("the authoring rule", () => {
     }
   });
 
+  it("locks only instruments that actually exist in the kit", () => {
+    // A typo here is a phone told to play a sound that is not on disk.
+    const ids = new Set(INSTRUMENTS.map((i) => i.id));
+    for (const song of SONGS) {
+      for (const role of song.roles) {
+        expect(role.instruments.length, `${song.id}/${role.id}`).toBeGreaterThan(0);
+        for (const instrumentId of role.instruments) {
+          expect(ids.has(instrumentId), `${song.id}/${role.id} -> ${instrumentId}`).toBe(true);
+        }
+      }
+    }
+  });
+
   it("gives every song a distinct priority order", () => {
     for (const song of SONGS) {
       const priorities = song.roles.map((r) => r.priority);
@@ -192,18 +207,20 @@ describe("interlocking actually interlocks", () => {
   it("gives people in the same role different parts", () => {
     // If two members of a dense role play identical parts, the room gets
     // comb filtering instead of an ensemble.
-    const song = SONGS.find((s) => s.id === "keherwa")!;
-    const shimmer = song.roles.find((r) => r.id === "colour")!;
-    const a = distributeRole(shimmer, 0, 4, 20, song.cycleBeats).map((o) => o.step);
-    const b = distributeRole(shimmer, 1, 4, 20, song.cycleBeats).map((o) => o.step);
+    const song = SONGS.find((s) => s.id === "chaiyya")!;
+    const dholak = song.roles.find((r) => r.id === "dholak")!;
+    const a = distributeRole(dholak, 0, 4, 20, song.cycleBeats).map((o) => o.step);
+    const b = distributeRole(dholak, 1, 4, 20, song.cycleBeats).map((o) => o.step);
     expect(a).not.toEqual(b);
   });
 
   it("hands one person the whole pattern when they are alone in the role", () => {
-    const song = SONGS.find((s) => s.id === "kuku")!;
-    const bell = song.roles.find((r) => r.id === "pulse")!;
-    const solo = distributeRole(bell, 0, 1, 6, song.cycleBeats).map((o) => o.step);
-    expect(solo).toEqual(bell.pattern.map((h) => h.step).sort((x, y) => x - y));
+    const song = SONGS.find((s) => s.id === "standByMe")!;
+    const bassline = song.roles.find((r) => r.id === "bassline")!;
+    const solo = distributeRole(bassline, 0, 1, 6, song.cycleBeats).map((o) => o.step);
+    expect(solo).toEqual(
+      bassline.pattern.map((h) => h.step).sort((x, y) => x - y),
+    );
   });
 
   it("is deterministic", () => {
@@ -217,7 +234,7 @@ describe("interlocking actually interlocks", () => {
 
 describe("role assignment", () => {
   it("fills the parts that carry the piece before doubling up", () => {
-    const song = SONGS.find((s) => s.id === "keherwa")!;
+    const song = SONGS.find((s) => s.id === "chaiyya")!;
     const taken: string[] = [];
     for (let i = 0; i < 3; i++) {
       taken.push(assignRole(song, taken).id);
@@ -229,15 +246,29 @@ describe("role assignment", () => {
     expect(priorities.sort()).toEqual([1, 2, 3]);
   });
 
-  it("spreads evenly once every role has someone", () => {
-    const song = SONGS.find((s) => s.id === "keherwa")!;
+  it("keeps the song's instrument ratio as the room grows", () => {
+    // We Will Rock You is stomps and claps or it is nothing. Weight 3 on each
+    // means sixty people stay roughly three-to-one stomp-and-clap against the
+    // decoration, instead of evening out into an equal split.
+    const song = SONGS.find((s) => s.id === "rockYou")!;
     const taken: string[] = [];
     for (let i = 0; i < 60; i++) taken.push(assignRole(song, taken).id);
 
-    const counts = song.roles.map(
-      (r) => taken.filter((id) => id === r.id).length,
-    );
-    expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1);
+    const count = (id: string) => taken.filter((r) => r === id).length;
+    for (const role of song.roles) {
+      expect(count(role.id), `${role.id} left empty`).toBeGreaterThan(0);
+    }
+    expect(count("stomp")).toBeGreaterThan(count("chord") * 2);
+    expect(count("clap")).toBeGreaterThan(count("chord") * 2);
+  });
+
+  it("deals each seat its locked instrument, round-robin", () => {
+    const song = SONGS.find((s) => s.id === "chaiyya")!;
+    const dholak = song.roles.find((r) => r.id === "dholak")!;
+    // ["dholak", "tabla"] alternates by seat; a fifth player wraps around.
+    expect(instrumentForSeat(dholak, 0)).toBe("dholak");
+    expect(instrumentForSeat(dholak, 1)).toBe("tabla");
+    expect(instrumentForSeat(dholak, 2)).toBe("dholak");
   });
 
   it("never leaves a small room without a pulse", () => {

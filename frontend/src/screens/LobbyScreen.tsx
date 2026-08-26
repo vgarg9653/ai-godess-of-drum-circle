@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/Button";
 import { InstrumentIcon } from "@/components/InstrumentIcon";
+import { InviteLink } from "@/components/InviteLink";
 import { Notice } from "@/components/Notice";
 import { SongVote } from "@/components/SongVote";
 import { Screen } from "@/components/Screen";
@@ -71,6 +72,9 @@ export function LobbyScreen() {
           {people.length} in the circle · tap to vote, change your mind freely
         </p>
 
+        <div className="mb-4 w-full">
+          <InviteLink room={room} />
+        </div>
         <SongVote room={room} youId={youId} onVote={voteSong} />
 
         <div className="sticky bottom-0 mt-6 w-full bg-gradient-to-t from-ink via-ink/90 to-transparent pb-2 pt-4">
@@ -157,6 +161,10 @@ export function LobbyScreen() {
             in the circle
           </p>
         </div>
+      </div>
+
+      <div className="mb-4 w-full max-w-[420px] px-5">
+        <InviteLink room={room} />
       </div>
 
       {isHost ? (

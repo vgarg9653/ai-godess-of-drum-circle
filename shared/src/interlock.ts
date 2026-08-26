@@ -24,7 +24,6 @@
  * who plays what, exactly as they do for instrument allocation.
  */
 
-import type { Family } from "./instruments.js";
 import { maxOnsets } from "./music.js";
 import type { Onset } from "./protocol.js";
 import type { RoleDef, Song } from "./songs.js";
@@ -38,47 +37,40 @@ import type { RoleDef, Song } from "./songs.js";
  *
  * @param takenRoleIds roles already assigned, in join order
  */
-export function assignRole(
-  song: Song,
-  takenRoleIds: readonly string[],
-  /**
-   * The family of the instrument this person is already holding.
-   *
-   * People pick and preview an instrument *before* the room votes, so the role
-   * is fitted to the instrument rather than the other way round. Handing a
-   * bansuri player the low boom would make nonsense of both. Falls back to any
-   * role when the song has none of that family.
-   */
-  preferFamily?: Family,
-): RoleDef {
+export function assignRole(song: Song, takenRoleIds: readonly string[]): RoleDef {
   const byPriority = [...song.roles].sort((a, b) => a.priority - b.priority);
-  const matching = preferFamily
-    ? byPriority.filter((r) => r.family === preferFamily)
-    : [];
-  const pool = matching.length > 0 ? matching : byPriority;
 
-  // Nobody in this role yet? Fill it before doubling up on anything.
-  for (const role of pool) {
+  // Nobody in this role yet? Fill it before doubling up on anything: a room of
+  // five must still sound like the piece.
+  for (const role of byPriority) {
     if (!takenRoleIds.includes(role.id)) return role;
   }
 
   const counts = new Map<string, number>();
-  for (const role of pool) counts.set(role.id, 0);
+  for (const role of byPriority) counts.set(role.id, 0);
   for (const id of takenRoleIds) {
     if (counts.has(id)) counts.set(id, (counts.get(id) ?? 0) + 1);
   }
 
-  // Fewest members wins; priority order breaks ties, so it stays deterministic.
-  let chosen = pool[0];
+  // Then even out in proportion to weight: lowest count-per-weight wins, so a
+  // role with weight 3 ends up with three times the people. This is the
+  // arrangement's instrument RATIO — a stomp-and-clap song stays mostly stomps
+  // and claps at sixty people. Priority breaks ties, keeping it deterministic.
+  let chosen = byPriority[0];
   let lowest = Infinity;
-  for (const role of pool) {
-    const n = counts.get(role.id) ?? 0;
-    if (n < lowest) {
-      lowest = n;
+  for (const role of byPriority) {
+    const score = (counts.get(role.id) ?? 0) / (role.weight ?? 1);
+    if (score < lowest) {
+      lowest = score;
       chosen = role;
     }
   }
   return chosen;
+}
+
+/** The instrument a given seat in a role plays. Locked — dealt, not chosen. */
+export function instrumentForSeat(role: RoleDef, rolePart: number): string {
+  return role.instruments[rolePart % role.instruments.length];
 }
 
 /** How many people are already in a role, which is a newcomer's slice index. */

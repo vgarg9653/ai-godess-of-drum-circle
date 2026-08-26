@@ -162,11 +162,23 @@ export function attachGodcServer(io: Io, options: GodcServerOptions = {}): GodcS
       socket.data.code = sroom.room.code;
       socket.data.pid = you.id;
       void socket.join(sroom.room.code);
+
+      // Arriving after the song was settled: their part is dealt on the spot,
+      // instrument included — there is no choosing in song mode.
+      const latePart =
+        sroom.room.songId !== null ? registry.assignRoleFor(sroom, you.id) : null;
+
       socket.to(sroom.room.code).emit("participant:joined", { ...you });
       ack({
         ok: true,
         data: { room: sroom.room, youId: you.id, serverTime: Date.now() },
       });
+      if (latePart && sroom.room.songId) {
+        socket.emit("song:chosen", {
+          songId: sroom.room.songId,
+          parts: { [you.id]: latePart },
+        });
+      }
     });
 
     socket.on("clock:ping", (p, ack) => {
@@ -184,6 +196,15 @@ export function attachGodcServer(io: Io, options: GodcServerOptions = {}): GodcS
         return;
       }
       const { sroom, pid } = here;
+      // In a settled song room instruments are locked: the arrangement dealt
+      // them, and asking again returns what you already hold.
+      if (sroom.room.songId) {
+        const me = sroom.room.participants.find((q) => q.id === pid);
+        if (me?.instrumentId) {
+          ack({ ok: true, data: { instrumentId: me.instrumentId } });
+          return;
+        }
+      }
       if (p?.instrumentId !== undefined && !getInstrument(p.instrumentId)) {
         ack({ ok: false, error: err("INTERNAL", "Unknown instrument.") });
         return;
@@ -191,19 +212,6 @@ export function attachGodcServer(io: Io, options: GodcServerOptions = {}): GodcS
       const instrumentId = registry.allocate(sroom, pid, p?.instrumentId);
       const me = sroom.room.participants.find((q) => q.id === pid);
       if (me) io.to(sroom.room.code).emit("participant:updated", { ...me });
-
-      // Arriving after the song was settled: fit them a part now, and tell
-      // only them — the rest of the room already had its song:chosen.
-      if (sroom.room.mode === "song" && sroom.room.songId) {
-        const part = registry.assignRoleFor(sroom, pid);
-        if (part && me) {
-          io.to(sroom.room.code).emit("participant:updated", { ...me });
-          socket.emit("song:chosen", {
-            songId: sroom.room.songId,
-            parts: { [pid]: part },
-          });
-        }
-      }
       ack({ ok: true, data: { instrumentId } });
     });
 
@@ -276,7 +284,13 @@ export function attachGodcServer(io: Io, options: GodcServerOptions = {}): GodcS
       if (sroom.room.phase !== "gathering") return;
 
       const settled = registry.settleSong(sroom);
-      if (settled) io.to(sroom.room.code).emit("song:chosen", settled);
+      if (settled) {
+        io.to(sroom.room.code).emit("song:chosen", settled);
+        // Instruments were just dealt; let every phone recolour its room.
+        for (const participant of sroom.room.participants) {
+          io.to(sroom.room.code).emit("participant:updated", { ...participant });
+        }
+      }
 
       const transport = registry.begin(sroom);
       io.to(sroom.room.code).emit("session:began", transport);

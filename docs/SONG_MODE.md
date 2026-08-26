@@ -9,19 +9,30 @@ the room simply *is* a free jam, in the world of that piece.
 
 ## Nothing of the original is played
 
-A "song" here is a set of musical decisions plus a handful of rhythmic patterns.
-The room plays its own instruments. No recording is streamed, stored or
-reproduced.
+A "song" here is a set of musical decisions plus rhythmic patterns. No
+recording is streamed, stored or reproduced — and the kit is **structurally
+incapable of playing a melody**: the bass has two pitches, the sitar two
+chords, the guitar one. Titles are not copyrightable; tempo and metre are
+facts; grooves are not protectable expression. What a room recognises is the
+groove, and the groove is what a crowd of hands can actually hold.
 
-The first catalogue is traditional and public-domain — Keherwa, Teental, Rupak,
-Kuku, Bhangra, Garba, Dhol Tasha, Kirtan. That is partly licensing: titles and
-tempi are not protectable but melodic hooks are. It is mostly musical, though.
-A bhangra dhol pattern feels like every Punjabi wedding song without being any
-of them, and for a drum circle the groove is what a room responds to. These
-forms are *already* interlocking ensemble music, which is the mechanism below.
+The catalogue is five songs everybody knows: **We Will Rock You** (the
+stomp-stomp-clap), **Chaiyya Chaiyya** (the train-top dholak), **Jo Bhi Main**
+(slow-burn strum), **Stand By Me** (root-and-answer bass feel), **Kun Faya
+Kun** (the six-beat qawwali sway).
 
-Named commercial tracks would need a sync licence. The data format would not
-change.
+## Instruments are locked
+
+In song mode nobody chooses an instrument — there is no choosing screen at
+all. Each role declares the instruments it hands out (`RoleDef.instruments`),
+dealt round-robin by seat, the way a bandleader hands out parts. A late
+arrival is dealt theirs at the door, in the join itself.
+
+Each role also carries a `weight`: every role gets one person first (priority
+order, so five people still sound like the piece), then the room evens out in
+proportion to weight. That is the arrangement's instrument **ratio** — We Will
+Rock You stays three-to-one stomps-and-claps at sixty people instead of
+drifting toward an equal split.
 
 ## The problem interlocking solves
 

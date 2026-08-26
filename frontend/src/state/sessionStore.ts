@@ -262,8 +262,11 @@ export const useSessionStore = create<SessionState>((set, get) => {
       song.cycleBeats,
     );
 
+    const instrumentId = me.instrumentId ?? phraseInstrument();
+    // The song dealt this instrument; make sure the hands are holding it.
+    engine?.setLocalInstrument(instrumentId);
     const phrase: Phrase = {
-      instrumentId: me.instrumentId ?? phraseInstrument(),
+      instrumentId,
       revision: 1,
       onsets,
     };
@@ -404,7 +407,12 @@ export const useSessionStore = create<SessionState>((set, get) => {
               participants: state.room.participants.map((p) => {
                 const part = parts[p.id];
                 return part
-                  ? { ...p, roleId: part.roleId, rolePart: part.rolePart }
+                  ? {
+                      ...p,
+                      roleId: part.roleId,
+                      rolePart: part.rolePart,
+                      instrumentId: part.instrumentId,
+                    }
                   : p;
               }),
             },
@@ -602,7 +610,18 @@ export const useSessionStore = create<SessionState>((set, get) => {
       await engine?.preview("frameDrum", get().room?.transport.moodId ?? "monsoon");
     },
 
-    finishSoundCheck: () => set({ phase: "choosing" }),
+    finishSoundCheck: () => {
+      // In song mode nobody chooses an instrument — the arrangement deals one
+      // when the song settles. Straight to the lobby; and if the room already
+      // began while this person was in the sound check, straight in.
+      const { mode, room } = get();
+      if (mode === "song") {
+        set({ phase: room?.phase === "playing" ? "playing" : "lobby" });
+        if (room?.phase === "playing") armTrance();
+        return;
+      }
+      set({ phase: "choosing" });
+    },
 
     chooseInstrument: async (instrumentId) => {
       if (!client) return;

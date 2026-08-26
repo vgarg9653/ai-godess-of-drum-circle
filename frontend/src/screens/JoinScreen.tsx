@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { GROUP_SIZES, type GroupSize, type RoomMode } from "@godc/shared";
+import { GROUP_SIZES, groupSizeFor, type GroupSize, type RoomMode } from "@godc/shared";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { useSessionStore } from "@/state/sessionStore";
@@ -37,10 +37,14 @@ export function JoinScreen({
   });
   const [manualCode, setManualCode] = useState(code ?? "");
   const [size, setSize] = useState<GroupSize | null>(null);
+  /** Song mode asks for a headcount — the arrangement's ratios come from it. */
+  const [headcount, setHeadcount] = useState("");
 
   const trimmed = name.trim();
+  const count = Number(headcount);
+  const countOk = Number.isInteger(count) && count >= 3 && count <= 80;
   const ready = hosting
-    ? trimmed.length > 0 && size !== null
+    ? trimmed.length > 0 && (mode === "song" ? countOk : size !== null)
     : trimmed.length > 0 && manualCode.trim().length > 0;
 
   function go() {
@@ -50,7 +54,11 @@ export function JoinScreen({
     } catch {
       // Remembering the name is a courtesy, not a requirement.
     }
-    if (hosting && size) void createRoom(trimmed, size, mode);
+    if (hosting) {
+      const chosen: GroupSize | null =
+        mode === "song" ? (countOk ? groupSizeFor(count) : null) : size;
+      if (chosen) void createRoom(trimmed, chosen, mode);
+    }
     else void joinRoom(manualCode.trim().toUpperCase(), trimmed);
   }
 
@@ -90,7 +98,26 @@ export function JoinScreen({
         </>
       )}
 
-      {hosting && (
+      {hosting && mode === "song" && (
+        <div className="mt-9">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-cream/50">
+            how many people will play?
+          </p>
+          <input
+            value={headcount}
+            onChange={(e) => setHeadcount(e.target.value.replace(/\D/g, "").slice(0, 2))}
+            inputMode="numeric"
+            placeholder="12"
+            className="mt-3 w-28 rounded-2xl border border-cream/15 bg-cream/[0.03] py-3.5 text-center font-display text-2xl text-cream focus:border-rhythm"
+          />
+          <p className="mt-2.5 text-[11.5px] leading-relaxed text-cream/40 text-pretty">
+            The song shares its parts out for exactly this many hands. Three or
+            more; a couple extra joining later is fine.
+          </p>
+        </div>
+      )}
+
+      {hosting && mode !== "song" && (
         <div className="mt-9">
           <p className="text-[11px] uppercase tracking-[0.3em] text-cream/50">
             how big will tonight’s circle be?

@@ -10,7 +10,7 @@ import type { HostChangeReason } from "./hosting.js";
 import type { GroupSize } from "./instruments.js";
 import type { MoodId } from "./music.js";
 
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 
 /* ------------------------------------------------------------------ *
  * Entities
@@ -335,8 +335,15 @@ export interface ServerToClientEvents {
    */
   "song:chosen": (payload: {
     songId: string;
-    /** Role and slice per participant id. */
-    parts: Record<string, { roleId: string; rolePart: number }>;
+    /**
+     * Role, slice and LOCKED instrument per participant id.
+     *
+     * In song mode the arrangement deals the instruments, the way a bandleader
+     * hands out parts — there is no choosing screen and no swap. The
+     * instrument arrives here so a phone can load its voice without waiting
+     * for a separate participant update.
+     */
+    parts: Record<string, { roleId: string; rolePart: number; instrumentId: string }>;
   }) => void;
 
   /** The host pressed Begin. Carries the transport with its final `startedAt`. */

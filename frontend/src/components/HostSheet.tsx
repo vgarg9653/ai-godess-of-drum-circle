@@ -3,10 +3,11 @@ import {
   BPM_MAX,
   BPM_MIN,
   CYCLE_OPTIONS,
-  MOODS,
   type MoodId,
+  type Room,
   type TransportState,
 } from "@godc/shared";
+import { InviteLink } from "./InviteLink";
 
 /** Milliseconds the close button must be held. Long enough to be deliberate. */
 const HOLD_MS = 1600;
@@ -21,10 +22,12 @@ const HOLD_MS = 1600;
  * the app and it sits on the same screen as a surface people are drumming on.
  */
 export function HostSheet({
+  room,
   transport,
   onChange,
   onEnd,
 }: {
+  room: Room;
   transport: TransportState;
   onChange: (p: { bpm?: number; cycleBeats?: number; moodId?: MoodId }) => void;
   onEnd: () => void;
@@ -60,6 +63,9 @@ export function HostSheet({
 
   return (
     <div className="godc-sheet flex w-full flex-col gap-4 rounded-[18px] border border-cream/14 bg-ink/92 p-[18px] backdrop-blur-sm">
+      {/* More people is the thing a host most often wants mid-session. */}
+      <InviteLink room={room} />
+
       <Row label="pace">
         <span className="text-[11px] text-cream/40">slow</span>
         <input
@@ -72,6 +78,8 @@ export function HostSheet({
         <span className="text-[11px] text-cream/40">quick</span>
       </Row>
 
+      {/* Metre changes would dismantle a dealt arrangement, so: jam only. */}
+      {room.songId === null && (
       <Row label="cycle">
         <div className="flex flex-1 gap-2">
           {CYCLE_OPTIONS.map((option) => {
@@ -92,27 +100,12 @@ export function HostSheet({
           })}
         </div>
       </Row>
+      )}
 
-      <Row label="mood">
-        <div className="flex flex-1 gap-2">
-          {MOODS.map((mood) => {
-            const active = transport.moodId === mood.id;
-            return (
-              <button
-                key={mood.id}
-                type="button"
-                title={mood.description}
-                onClick={() => onChange({ moodId: mood.id })}
-                className={`flex-1 rounded-full border py-2.5 text-[13px] transition ${
-                  active ? "border-bed bg-bed/15" : "border-cream/14 text-cream/70"
-                }`}
-              >
-                {mood.name}
-              </button>
-            );
-          })}
-        </div>
-      </Row>
+      {/* Mood used to live here. It changed the room's scale — and the kit is
+          now real recordings that play at the pitch they were captured, so it
+          changed nothing anyone could hear. Dead controls teach people not to
+          trust the live ones, so it is gone rather than kept for show. */}
 
       <p className="text-center text-[10.5px] uppercase tracking-[0.28em] text-cream/35">
         you opened this circle

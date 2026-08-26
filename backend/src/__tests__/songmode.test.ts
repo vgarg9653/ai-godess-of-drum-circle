@@ -50,15 +50,15 @@ describe("voting", () => {
   it("fans the moving tally to the whole room, last vote per person counting", async () => {
     const { host, others } = await songRoom(2);
     const tally = waitFor(others[1], "song:votes");
-    host.emit("song:vote", { songId: "garba" });
+    host.emit("song:vote", { songId: "chaiyya" });
     const first = await tally;
-    expect(Object.values(first.votes)).toContain("garba");
+    expect(Object.values(first.votes)).toContain("chaiyya");
 
     const changed = waitFor(others[1], "song:votes");
-    host.emit("song:vote", { songId: "bhangra" });
+    host.emit("song:vote", { songId: "standByMe" });
     const second = await changed;
-    expect(Object.values(second.votes)).toContain("bhangra");
-    expect(Object.values(second.votes)).not.toContain("garba");
+    expect(Object.values(second.votes)).toContain("standByMe");
+    expect(Object.values(second.votes)).not.toContain("chaiyya");
   });
 
   it("ignores a songId that is not in the catalogue", async () => {
@@ -79,9 +79,9 @@ describe("the settle", () => {
     await selectInstrument(host);
     for (const s of others) await selectInstrument(s);
 
-    host.emit("song:vote", { songId: "kirtan" });
-    others[0].emit("song:vote", { songId: "kirtan" });
-    others[1].emit("song:vote", { songId: "baraat" as string });
+    host.emit("song:vote", { songId: "kunFayaKun" });
+    others[0].emit("song:vote", { songId: "kunFayaKun" });
+    others[1].emit("song:vote", { songId: "rockYou" as string });
     await sleep(150);
 
     const chosen = waitFor(others[2], "song:chosen");
@@ -89,7 +89,7 @@ describe("the settle", () => {
     host.emit("session:begin");
 
     const settled = await chosen;
-    expect(settled.songId).toBe("kirtan");
+    expect(settled.songId).toBe("kunFayaKun");
     const song = getSong(settled.songId)!;
     for (const id of ids) {
       const part = settled.parts[id];
@@ -104,54 +104,44 @@ describe("the settle", () => {
     expect(transport.moodId).toBe(song.moodId);
   });
 
-  it("fits roles to the instruments people already chose", async () => {
-    const { host, others, ids } = await songRoom(3);
-    // Deliberate spread: a melody, a deep drum, two beats. Handing the sitar
-    // player the low boom would make nonsense of both.
-    const instruments: Record<string, string> = {
-      [ids[0]]: "sitar",
-      [ids[1]]: "dhol",
-      [ids[2]]: "tabla",
-      [ids[3]]: "dholak",
-    };
-    await selectInstrument(host, instruments[ids[0]]);
-    await selectInstrument(others[0], instruments[ids[1]]);
-    await selectInstrument(others[1], instruments[ids[2]]);
-    await selectInstrument(others[2], instruments[ids[3]]);
+  it("deals the song's locked instruments — the arrangement, not the person, decides", async () => {
+    const { host, ids } = await songRoom(3);
 
     host.emit("song:vote", { songId: SONGS[0].id });
     const chosen = waitFor(host, "song:chosen");
     host.emit("session:begin");
     const settled = await chosen;
     const song = getSong(settled.songId)!;
-    const offered = new Set(song.roles.map((r) => r.family));
 
     expect(Object.keys(settled.parts)).toHaveLength(4);
-    for (const [pid, instrumentId] of Object.entries(instruments)) {
-      const family = getInstrument(instrumentId)!.family;
-      if (!offered.has(family)) continue; // song has no such part; any role is fine
-      const role = song.roles.find((r) => r.id === settled.parts[pid].roleId)!;
-      expect(role.family, `${instrumentId} was given ${role.id}`).toBe(family);
+    for (const id of ids) {
+      const part = settled.parts[id];
+      const role = song.roles.find((r) => r.id === part.roleId)!;
+      // The dealt instrument is the role's, by seat.
+      expect(part.instrumentId).toBe(
+        role.instruments[part.rolePart % role.instruments.length],
+      );
+      expect(getInstrument(part.instrumentId), part.instrumentId).toBeDefined();
     }
   });
 
-  it("gives a late arrival a part of their own, privately", async () => {
+  it("deals a late arrival their part at the door, instrument included", async () => {
     const { host, code } = await songRoom(2);
-    await selectInstrument(host);
     host.emit("session:begin");
     await waitFor(host, "session:began");
 
     const late = rig.connect();
+    // The part arrives right behind the join ack — listen before joining.
+    const part = waitFor(late, "song:chosen");
     const joined = await joinRoom(late, code, "Latecomer");
     expect(joined.room.songId).not.toBeNull();
 
-    const part = waitFor(late, "song:chosen");
-    await selectInstrument(late);
     const settled = await part;
     expect(settled.songId).toBe(joined.room.songId);
     const mine = settled.parts[joined.youId];
     expect(mine).toBeDefined();
     const song = getSong(settled.songId)!;
-    expect(song.roles.some((r) => r.id === mine.roleId)).toBe(true);
+    const role = song.roles.find((r) => r.id === mine.roleId)!;
+    expect(role.instruments).toContain(mine.instrumentId);
   });
 });

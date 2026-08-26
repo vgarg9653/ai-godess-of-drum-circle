@@ -41,9 +41,20 @@ export function Landing() {
       <p className="mt-5 font-display text-[19px] tracking-[0.01em] text-cream/90">
         Jam together, build memories
       </p>
-      <p className="mt-2.5 max-w-[260px] text-[13.5px] leading-relaxed text-cream/45 text-pretty">
-        Sit down. Tap. Nobody can play a wrong note here.
-      </p>
+
+      {/* What actually happens, in the order it happens. */}
+      <div className="mt-4 flex max-w-[290px] flex-col gap-1.5 text-left">
+        {[
+          ["1", "One person starts a circle and shares the link"],
+          ["2", "Everyone opens it — each phone becomes an instrument"],
+          ["3", "Tap along — your rhythm loops, and the room plays as one"],
+        ].map(([n, line]) => (
+          <p key={n} className="flex items-baseline gap-2.5 text-[13px] leading-snug text-cream/55">
+            <span className="flex-none font-display text-[15px] text-gold">{n}</span>
+            {line}
+          </p>
+        ))}
+      </div>
 
       <div className="mt-9 flex w-full max-w-[300px] flex-col gap-3">
         <Button

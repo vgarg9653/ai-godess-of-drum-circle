@@ -63,19 +63,19 @@ describe("a song room", () => {
     const tallies: Array<Record<string, string>> = [];
     client.on("song:votes", ({ votes }) => tallies.push(votes));
 
-    client.voteSong("bhangra");
-    client.voteSong("garba");
+    client.voteSong("chaiyya");
+    client.voteSong("standByMe");
 
     const last = tallies.at(-1)!;
-    expect(last[youId]).toBe("garba");
-    expect(Object.values(last).filter((v) => v === "bhangra")).not.toContain(youId);
+    expect(last[youId]).toBe("standByMe");
+    expect(Object.values(last).filter((v) => v === "chaiyya")).not.toContain(youId);
     expect(room.mode).toBe("song");
   });
 
   it("plays what the room voted for", async () => {
     const { client, chosen } = await songRoom(6);
     // Outvote the synthetic participants decisively.
-    client.voteSong("kirtan");
+    client.voteSong("kunFayaKun");
     client.beginSession();
     expect(chosen).toHaveLength(1);
     // Either the room's favourite or ours wins, but it must be a real piece.
@@ -107,26 +107,17 @@ describe("a song room", () => {
     }
   });
 
-  it("fits the part to the instrument each person already chose", async () => {
+  it("deals each person the song's locked instrument — nobody chooses", async () => {
     const { client, chosen, states } = await songRoom(8);
     client.beginSession();
     const room = states.at(-1)!;
     const song = getSong(chosen[0].songId)!;
-    const families = new Set(song.roles.map((r) => r.family));
 
-    // Anyone whose instrument family exists in this arrangement must have been
-    // given a role of that family — handing a flute the low boom is nonsense.
     for (const p of room.participants as Participant[]) {
-      if (!p.instrumentId || !p.roleId) continue;
+      expect(p.roleId, `${p.name} has no role`).not.toBeNull();
       const role = song.roles.find((r) => r.id === p.roleId)!;
-      const instrumentFamily = room.participants.find((q) => q.id === p.id)!.instrumentId;
-      if (!instrumentFamily) continue;
-      // Only assert when the song actually offers that family.
-      const { getInstrument } = await import("@godc/shared");
-      const family = getInstrument(p.instrumentId)?.family;
-      if (family && families.has(family)) {
-        expect(role.family, `${p.name} plays ${p.instrumentId} but got ${role.id}`).toBe(family);
-      }
+      // The instrument is the role's, dealt by seat — not whatever they held.
+      expect(role.instruments, `${p.name}`).toContain(p.instrumentId);
     }
   });
 
