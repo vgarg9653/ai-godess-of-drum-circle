@@ -71,8 +71,10 @@ This is not an optimisation, it is the design. It means:
 - Phrases travel over the wire as tiny JSON structures, purely so other phones
   can *draw* them.
 - What must be synchronised is **time**, not audio. Hence the shared-clock work.
-- `AudioEngine.monitorOthers` exists only so one laptop can hear a whole room
-  while developing. It must stay off in a real session.
+- Speaker mode (`AudioEngine.setMonitorOthers`) lets one opted-in device —
+  the host's laptop on a real speaker — carry the whole room's mix under the
+  phones. Off by default; toggled per device in the host sheet; the acoustic
+  mix remains the design.
 
 ### Nobody in the room speaks music
 

@@ -94,6 +94,8 @@ interface SessionState {
   summary: SessionSummary | null;
   error: string | null;
   preload: PreloadProgress | null;
+  /** This device also plays everybody else's parts. Host's-laptop feature. */
+  speakerMode: boolean;
   /** Interface dimmed and chrome hidden, once the room has settled. */
   trance: boolean;
   /** Transient banner: the circle changed hands, someone left, and so on. */
@@ -134,6 +136,7 @@ interface SessionState {
   clearStep: (step: number) => void;
   clearAll: () => void;
   updateTransport: (p: UpdateTransportPayload) => void;
+  toggleSpeakerMode: () => void;
   endSession: () => void;
   leave: () => void;
   wake: () => void;
@@ -558,6 +561,11 @@ export const useSessionStore = create<SessionState>((set, get) => {
       });
 
       wireServerEvents();
+      // The join snapshot IS the room state. Without this line a late joiner's
+      // engine never learns the transport — the server only tells the room
+      // about transport on change/begin — so every tap died on the
+      // no-transport guard and their phone was simply silent.
+      engine.setTransport(room.transport);
       for (const [participantId, phrase] of Object.entries(room.phrases)) {
         if (participantId !== youId) engine.setRemotePhrase(participantId, phrase);
       }
@@ -585,6 +593,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
     summary: null,
     error: null,
     preload: null,
+    speakerMode: false,
     trance: false,
     notice: null,
     loopState: "open",
@@ -619,6 +628,9 @@ export const useSessionStore = create<SessionState>((set, get) => {
     },
 
     finishSoundCheck: () => {
+      // Skipping the slider must not mean a silent evening: this click is a
+      // user gesture too, so it unlocks audio just as the drag would have.
+      void engine?.start();
       // In song mode nobody chooses an instrument — the arrangement deals one
       // when the song settles. Straight to the lobby; and if the room already
       // began while this person was in the sound check, straight in.
@@ -692,6 +704,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
     },
 
     takeSeat: () => {
+      void engine?.start();
       // If the room started while this person was still choosing, they go
       // straight in rather than to a lobby that has already emptied out.
       if (get().room?.phase === "playing") {
@@ -705,6 +718,9 @@ export const useSessionStore = create<SessionState>((set, get) => {
     beginSession: () => client?.beginSession(),
 
     strike: (stroke) => {
+      // Belt and braces: a tap on the play surface is a gesture. If audio is
+      // somehow still locked, this tap unlocks it and the next one sounds.
+      if (engine && !engine.isStarted) void engine.start();
       const { phrase, room, youId, loopState } = get();
       if (!phrase || !room || !clock || !youId) return;
 
@@ -780,6 +796,15 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
     updateTransport: (p) => client?.updateTransport(p),
 
+    toggleSpeakerMode: () => {
+      const on = !get().speakerMode;
+      set({ speakerMode: on });
+      // The toggle is a click — enough of a gesture to unlock audio on a
+      // laptop that never saw the sound check slider.
+      void engine?.start();
+      engine?.setMonitorOthers(on);
+    },
+
     endSession: () => client?.endSession(),
 
     /** Any deliberate touch brings the interface back and restarts the timer. */
@@ -798,6 +823,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
         summary: null,
         error: null,
         preload: null,
+        speakerMode: false,
         trance: false,
         notice: null,
         loopState: "open",

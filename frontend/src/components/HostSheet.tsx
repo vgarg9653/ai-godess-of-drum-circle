@@ -7,6 +7,7 @@ import {
   type Room,
   type TransportState,
 } from "@godc/shared";
+import { useSessionStore } from "@/state/sessionStore";
 import { InviteLink } from "./InviteLink";
 
 /** Milliseconds the close button must be held. Long enough to be deliberate. */
@@ -32,6 +33,8 @@ export function HostSheet({
   onChange: (p: { bpm?: number; cycleBeats?: number; moodId?: MoodId }) => void;
   onEnd: () => void;
 }) {
+  const speakerMode = useSessionStore((s) => s.speakerMode);
+  const toggleSpeakerMode = useSessionStore((s) => s.toggleSpeakerMode);
   const [held, setHeld] = useState(0);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAt = useRef(0);
@@ -102,10 +105,32 @@ export function HostSheet({
       </Row>
       )}
 
-      {/* Mood used to live here. It changed the room's scale — and the kit is
-          now real recordings that play at the pitch they were captured, so it
-          changed nothing anyone could hear. Dead controls teach people not to
-          trust the live ones, so it is gone rather than kept for show. */}
+      {/* Speaker mode: this device carries the whole room's mix under the
+          phones. Meant for a laptop on a real speaker; each phone still plays
+          only its own instrument — the room stays the mixer. */}
+      <button
+        type="button"
+        onClick={toggleSpeakerMode}
+        className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+          speakerMode ? "border-top/60 bg-top/10" : "border-cream/14"
+        }`}
+      >
+        <span>
+          <span className="block text-[13.5px] text-cream/90">
+            Play the whole room from this device
+          </span>
+          <span className="block text-[11px] text-cream/45">
+            for a laptop on a speaker — phones keep playing their own part
+          </span>
+        </span>
+        <span
+          className={`ml-3 flex-none rounded-full px-3 py-1 text-[11px] font-semibold ${
+            speakerMode ? "bg-top/20 text-top" : "bg-cream/10 text-cream/50"
+          }`}
+        >
+          {speakerMode ? "ON" : "OFF"}
+        </span>
+      </button>
 
       <p className="text-center text-[10.5px] uppercase tracking-[0.28em] text-cream/35">
         you opened this circle

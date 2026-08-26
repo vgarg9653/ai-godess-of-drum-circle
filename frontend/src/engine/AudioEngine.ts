@@ -8,8 +8,9 @@
  * phrase. The brief's central constraint is that participants are physically
  * together, so the mix happens in the air rather than in software. Other
  * people's phrases are held here purely to drive the presence visuals.
- * `monitorOthers` exists so a single laptop can hear a whole room while
- * developing, and should stay off in a real session.
+ * Speaker mode (`setMonitorOthers`) lets one opted-in device — typically the
+ * host's laptop on a real speaker — carry the whole room's mix under the
+ * phones. Off by default everywhere.
  */
 
 import * as Tone from "tone";
@@ -113,14 +114,46 @@ export class AudioEngine {
 
   /** All phrases including the local one, for visuals. */
   private phrases = new Map<string, Phrase>();
-  /** Only populated when monitoring is on. */
-  private monitorVoices = new Map<string, Voice>();
+  /** Only populated while speaker mode is on. Keyed by participant. */
+  private monitorVoices = new Map<string, { instrumentId: string; voice: Voice }>();
 
   private transport: TransportState | null = null;
   private repeatId: number | null = null;
   private driftTimer: ReturnType<typeof setInterval> | null = null;
 
-  monitorOthers = false;
+  private monitorOthers = false;
+
+  /**
+   * Speaker mode: this one device also plays everybody else's parts.
+   *
+   * The design is that each phone sounds only its own instrument and the room
+   * mixes in the air — that stands. But a host's laptop on a decent speaker
+   * carrying the full mix under the phones makes a thin room thick, and it is
+   * genuinely useful when phone speakers are weak. Opt-in, per device, and the
+   * master limiter is downstream of all of it.
+   */
+  setMonitorOthers(enabled: boolean): void {
+    this.monitorOthers = enabled;
+    if (!enabled) {
+      for (const entry of this.monitorVoices.values()) entry.voice.dispose();
+      this.monitorVoices.clear();
+      return;
+    }
+    if (!this.master) return;
+    for (const [id, phrase] of this.phrases) this.ensureMonitorVoice(id, phrase);
+  }
+
+  private ensureMonitorVoice(participantId: string, phrase: Phrase): void {
+    if (!this.master) return;
+    const existing = this.monitorVoices.get(participantId);
+    if (existing?.instrumentId === phrase.instrumentId) return;
+    // New participant, or they changed instrument: rebuild their voice.
+    existing?.voice.dispose();
+    this.monitorVoices.set(participantId, {
+      instrumentId: phrase.instrumentId,
+      voice: createVoice(phrase.instrumentId, this.master),
+    });
+  }
 
   /** Where the playhead is, so a live strike knows whether its step is ahead. */
   private currentStep = 0;
@@ -337,21 +370,12 @@ export class AudioEngine {
   setRemotePhrase(participantId: string, phrase: Phrase | null): void {
     if (phrase === null) {
       this.phrases.delete(participantId);
-      this.monitorVoices.get(participantId)?.dispose();
+      this.monitorVoices.get(participantId)?.voice.dispose();
       this.monitorVoices.delete(participantId);
       return;
     }
     this.phrases.set(participantId, phrase);
-
-    if (this.monitorOthers && this.master) {
-      const existing = this.monitorVoices.get(participantId);
-      if (!existing) {
-        this.monitorVoices.set(
-          participantId,
-          createVoice(phrase.instrumentId, this.master),
-        );
-      }
-    }
+    if (this.monitorOthers) this.ensureMonitorVoice(participantId, phrase);
   }
 
   /* ---------------- the clock tick ---------------- */
@@ -389,11 +413,11 @@ export class AudioEngine {
       }
     }
 
-    // Development-only monitoring of the rest of the room.
+    // Speaker mode: this device carries the whole room.
     if (this.monitorOthers) {
       for (const [id, phrase] of this.phrases) {
-        const voice = this.monitorVoices.get(id);
-        if (voice) this.playPhrase(phrase, voice, step, time, stepDur, state);
+        const entry = this.monitorVoices.get(id);
+        if (entry) this.playPhrase(phrase, entry.voice, step, time, stepDur, state);
       }
     }
 
@@ -455,7 +479,7 @@ export class AudioEngine {
 
     this.localVoice?.dispose();
     this.localVoice = null;
-    for (const voice of this.monitorVoices.values()) voice.dispose();
+    for (const entry of this.monitorVoices.values()) entry.voice.dispose();
     this.monitorVoices.clear();
     this.phrases.clear();
 
