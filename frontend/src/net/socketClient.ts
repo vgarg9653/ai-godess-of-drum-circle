@@ -36,7 +36,12 @@ export class SocketRoomClient implements RoomClient {
     if (this.socket?.connected) return Promise.resolve();
 
     this.socket = io(this.url, {
-      transports: ["websocket"],
+      // WebSocket first for latency, but NEVER websocket-only: tunnels,
+      // corporate wifi and some mobile carriers refuse the upgrade, and a
+      // client with no fallback just hangs at "Finding the circle…" forever.
+      // Long-polling gets through nearly anything; the clock sync measures
+      // real round-trips either way, so timing stays honest.
+      transports: ["websocket", "polling"],
       // Retreat wifi drops constantly. Reconnect hard and keep the session.
       reconnection: true,
       reconnectionAttempts: Infinity,
